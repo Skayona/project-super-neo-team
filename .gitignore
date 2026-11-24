@@ -221,3 +221,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+.DS_Store
+# Local planning and notes
+docs/plans/
+
+
+# Local assistant storage
+.personal_assistant/
+
