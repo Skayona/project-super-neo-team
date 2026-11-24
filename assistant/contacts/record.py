@@ -1,0 +1,91 @@
+from typing import Any
+
+from assistant.core.exceptions import ExtendedValueError
+from assistant.core.fields import Address, Birthday, Email, Name, Phone
+
+
+class Record:
+    def __init__(self, name: str):
+        self.name = Name(name)
+        self.phones: list[Phone] = []
+        self.email: Email | None = None
+        self.birthday: Birthday | None = None
+        self.address: Address | None = None
+
+    def add_phone(self, phone: str) -> None:
+        self.phones.append(Phone(phone))
+
+    def add_email(self, value: str) -> None:
+        self.email = Email(value)
+
+    def remove_phone(self, phone: str) -> None:
+        phone_to_remove = self.find_phone(phone)
+        if phone_to_remove is None:
+            raise ExtendedValueError(f"Phone number {phone} doesn't exist.")
+        self.phones.remove(phone_to_remove)
+
+    def edit_phone(self, old_phone: str, new_phone: str) -> None:
+        phone_to_edit = self.find_phone(old_phone)
+        if phone_to_edit:
+            index = self.phones.index(phone_to_edit)
+            self.phones[index] = Phone(new_phone)
+        else:
+            raise ExtendedValueError(
+                f"Phone number {old_phone} doesn't exist."
+            )
+
+    def find_phone(self, number: str) -> Phone | None:
+        return next(
+            (phone for phone in self.phones if phone.value == number), None
+        )
+
+    def delete_phone(self, phone: str) -> None:
+        phone_to_delete = self.find_phone(phone)
+        if phone_to_delete:
+            self.phones.remove(phone_to_delete)
+        else:
+            raise ExtendedValueError(f"Phone number {phone} doesn't exist.")
+
+    def add_birthday(self, date: str) -> None:
+        self.birthday = Birthday(date)
+
+    def add_address(self, value: str) -> None:
+        self.address = Address(value)  # noqa: F821
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name.value,
+            "phones": [p.value for p in self.phones],
+            "birthday": self.birthday.value if self.birthday else None,
+            "email": self.email.value if self.email else None,
+            "address": self.address.value if self.address else None,
+        }
+
+    def show_all_phones(self) -> str:
+        phones = "; ".join(p.value for p in self.phones)
+        return f"Phones for {self.name.value}: {phones}"
+
+    @staticmethod
+    def from_dict(data: dict[str, Any]) -> "Record":
+        record = Record(data["name"])
+        for phone in data.get("phones", []):
+            record.add_phone(phone)
+        birthday_str = data.get("birthday")
+        if birthday_str:
+            record.add_birthday(birthday_str)
+        email_str = data.get("email")
+        if email_str:
+            record.add_email(email_str)
+        address_str = data.get("address")
+        if address_str:
+            record.add_address(address_str)
+        return record
+
+    def __str__(self) -> str:
+        res = (
+            f"Contact name: {self.name.value}, phones: "
+            f"{'; '.join(p.value for p in self.phones)}"
+        )
+        if self.birthday:
+            res += f", birthday: {self.birthday.value}"
+        return res
