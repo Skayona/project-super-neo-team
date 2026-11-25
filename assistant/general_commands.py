@@ -1,27 +1,43 @@
-
+import shlex
 from collections.abc import Callable
 from functools import partial
 from typing import Any
 
+import shlex
+from collections.abc import Callable
+from functools import partial
+
+from typing import Any
+
 from rich.panel import Panel
 
-from assistant.contacts.address_book import AddressBook
+from assistant.contacts.address_book import AddressBook, ExtendedValueError
 from assistant.core.command import Command
-from assistant.core.input_error_decorator import input_error
 from assistant.storage.storage import save_address_book
 from assistant.ui.views import format_command_card, format_help, format_info
 
 
-@input_error
-def parse_input(user_input: str) -> tuple[str, ...]:
-    if not user_input:
-        return ("",)
+def parse_input(user_input: str) -> tuple[str, list[str]]:
+    if not user_input or not user_input.strip():
+        return "", []
 
     user_input = user_input.strip()
-    cmd, *args = user_input.split()
+    splitter = shlex.shlex(user_input, posix=True)
+    splitter.quotes = '"'  # апострофи в назвах не мають бути викинуиті
+    splitter.whitespace_split = True
+
+    try:
+        splitted_input = list(splitter)
+    except ValueError:
+        raise ExtendedValueError("Незакрита лапка у команді.")
+
+    if not splitted_input:
+        return "", []
+
+    cmd, *args = splitted_input
     cmd = cmd.lower()
 
-    return cmd, *args
+    return cmd, args
 
 
 def hello_handler(*_: Any) -> Panel:
