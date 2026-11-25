@@ -3,6 +3,7 @@ from rich.console import Console
 from assistant.contacts.handlers_registry import build_contacts_commands
 from assistant.core.command import Command
 from assistant.general_commands import (
+    ExtendedValueError,
     build_general_commands,
     exit_handler,
     parse_input,
@@ -29,13 +30,19 @@ def main():
     while True:
         try:
             user_input = session.prompt("Enter a command: ")
+            command_key, args = parse_input(user_input)
         except KeyboardInterrupt:
             continue
         except EOFError:
             console.print(exit_handler(book))
             break
+        except ExtendedValueError as err:
+            console.print(format_error(str(err)))
+            continue
 
-        command_key, *args = parse_input(user_input)
+        if not command_key:
+            continue
+
         command = commands.get(command_key)
 
         if command:
