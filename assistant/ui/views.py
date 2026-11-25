@@ -2,6 +2,7 @@ from difflib import get_close_matches
 from typing import get_args
 
 from rich import box
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
@@ -10,7 +11,7 @@ from assistant.core.command import Category, Command
 
 def format_info(text: str) -> Panel:
     return Panel(
-        f"\n{text}\n",
+        f"\n{escape(text)}\n",
         title_align="left",
         box=box.ROUNDED,
         border_style="white",
@@ -20,7 +21,7 @@ def format_info(text: str) -> Panel:
 
 def format_success(text: str) -> Panel:
     return Panel(
-        f"\n{text}\n",
+        f"\n{escape(text)}\n",
         title_align="left",
         box=box.ROUNDED,
         border_style="green",
@@ -30,7 +31,7 @@ def format_success(text: str) -> Panel:
 
 def format_error(text: str) -> Panel:
     return Panel(
-        f"\n{text}\n",
+        f"\n{escape(text)}\n",
         title_align="left",
         box=box.ROUNDED,
         border_style="red",
@@ -40,7 +41,7 @@ def format_error(text: str) -> Panel:
 
 def format_card(title: str, data: dict[str, str]) -> Panel:
     lines = [
-        f"[bold magenta]{key}:[/] {value or '—'}"
+        f"[bold magenta]{escape(key)}:[/] {escape(value) or '—'}"
         for key, value in data.items()
     ]
     joined_lines = "\n".join(lines)
@@ -49,7 +50,7 @@ def format_card(title: str, data: dict[str, str]) -> Panel:
         title_align="left",
         box=box.ROUNDED,
         border_style="cyan",
-        title=f"[bold cyan]{title}[/]",
+        title=f"[bold cyan]{escape(title)}[/]",
     )
 
 
@@ -60,13 +61,15 @@ def format_table(
         return format_info("Список порожній.")
 
     table = Table(
-        title=f"[bold magenta]{title}[/]", box=box.ROUNDED, show_lines=True
+        title=f"[bold magenta]{escape(title)}[/]",
+        box=box.ROUNDED,
+        show_lines=True,
     )
     for header in headers:
-        table.add_column(header, style="cyan")
+        table.add_column(escape(header), style="cyan")
 
     for row in rows:
-        table.add_row(*row)
+        table.add_row(*map(lambda col: escape(col), row))
 
     return table
 
@@ -116,6 +119,6 @@ def format_help(commands: dict[str, Command]) -> Table:
         first = False
         table.add_row(f"[bold magenta]{category}[/]", "")
         for cmd in group:
-            table.add_row(f"  {cmd.usage}", cmd.description)
+            table.add_row(f"  {escape(cmd.usage)}", escape(cmd.description))
 
     return table

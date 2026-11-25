@@ -3,12 +3,6 @@ from collections.abc import Callable
 from functools import partial
 from typing import Any
 
-import shlex
-from collections.abc import Callable
-from functools import partial
-
-from typing import Any
-
 from rich.panel import Panel
 
 from assistant.contacts.address_book import AddressBook, ExtendedValueError
