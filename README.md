@@ -8,8 +8,7 @@
 
 Проєкт побудовано згідно з найкращими практиками Python (структурований пакет `assistant`, строга типізація, лінтинг через Ruff, автодоповнення команд через prompt_toolkit та форматування виводу через Rich).
 
-Усі дані автоматично зберігаються на диску в локальній папці `.personal_assistant/address_book.json`.
-
+Усі дані автоматично зберігаються на диску в домашній папці користувача `~/assistant_storage/address_book.json` (на Windows — `%USERPROFILE%\assistant_storage\address_book.json`).
 ---
 
 ## 2. Як налаштувати та запустити
