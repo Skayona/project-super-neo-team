@@ -18,9 +18,9 @@ class ExtendedValueError(Exception):
         super().__init__(self.message)
 
 
-class AlreadyExistsError(ExtendedValueError):
-    """Raised when a value (phone, contact) already exists."""
-
-
 class UsageError(ExtendedValueError):
     pass
+
+
+class AlreadyExistsError(ExtendedValueError):
+    """Raised when a value (phone, contact) already exists."""
