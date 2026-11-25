@@ -2,7 +2,11 @@ from rich import box
 from rich.panel import Panel
 from rich.table import Table
 
-from assistant.core.command import Command
+from typing import get_args
+
+from difflib import get_close_matches
+
+from assistant.core.command import Command, Category
 
 
 def format_info(text: str) -> Panel:
@@ -68,15 +72,51 @@ def format_table(
     return table
 
 
+def format_command_card(commands: dict[str, Command], name: str) -> Panel:
+    key = name.lower()
+    cmd = commands.get(key)
+    if cmd is None:
+        message = f"Команду '{name}' не знайдено."
+        similar = get_close_matches(key, commands.keys(), n=3, cutoff=0.5)
+        if similar:
+            message += f"\nМожливо, ви мали на увазі: {', '.join(similar)}"
+        message += "\nВведіть 'help', щоб побачити всі команди."
+        return format_error(message)
+
+    return format_card(
+        key,
+        {
+            "Використання": cmd.usage,
+            "Опис": cmd.description,
+            "Категорія": cmd.category,
+            "Приклад": cmd.example or cmd.usage,
+        },
+    )
+
+
 def format_help(commands: dict[str, Command]) -> Table:
     table = Table(
-        title="[bold magenta]Доступні команди[/]", box=box.SIMPLE_HEAVY
+        title="[bold magenta]Доступні команди[/]",
+        box=box.ROUNDED,
+        show_lines=False,
     )
-    table.add_column("Команда", style="bold green")
-    table.add_column("Використання", style="cyan")
+    table.add_column("Використання", style="bold green")
     table.add_column("Опис")
 
-    for name, cmd in sorted(commands.items()):
-        table.add_row(name, cmd.usage, cmd.description)
+    unique = {id(cmd): cmd for _, cmd in sorted(commands.items())}.values()
+
+    categories = sorted(get_args(Category), key=lambda c: c != "General")
+
+    first = True
+    for category in categories:
+        group = [cmd for cmd in unique if cmd.category == category]
+        if not group:
+            continue
+        if not first:
+            table.add_section()
+        first = False
+        table.add_row(f"[bold magenta]{category}[/]", "")
+        for cmd in group:
+            table.add_row(f"  {cmd.usage}", cmd.description)
 
     return table

@@ -17,13 +17,11 @@ from assistant.ui.views import (
     format_table,
 )
 
-
 def get_record(book: AddressBook, name: str) -> Record:
     record = book.find(name)
     if record is None:
         raise MissingContactError(name)
     return record
-
 
 # Modifies passed record entity without returning it.
 def add_contact_info(record: Record, args: list[str]) -> None:
@@ -224,6 +222,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
                 "('-' для пропуску поля, напр.: add-contact Anna - a@m.com)"
             ),
             category="Contacts",
+            example="add-contact Anna 0501234567 anna@mail.com 15.03.1995 Київ, вул. Хрещатик 1",
         ),
         "delete-contact": Command(
             handler=delete_contact,
@@ -231,18 +230,21 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             usage="delete-contact <ім'я>",
             description="Видалити контакт із книги",
             category="Contacts",
+            example="delete-contact Anna",
         ),
         "find-contact": Command(
             handler=find_contact,
             usage="find-contact <запит...>",
             description="Знайти контакти за іменем, телефоном або email",
             category="Contacts",
+            example="find-contact Anna",
         ),
         "show-all-contacts": Command(
             handler=show_all_contacts,
             usage="show-all-contacts",
             description="Показати всі збережені контакти",
             category="Contacts",
+            example="show-all-contacts",
         ),
         "add-phone": Command(
             handler=add_phone,
@@ -250,6 +252,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             usage="add-phone <ім'я> <телефон>",
             description="Додати додатковий номер телефону до контакту",
             category="Contacts",
+            example="add-phone Anna 0507654321",
         ),
         "show-phone": Command(
             handler=show_phone,
@@ -257,6 +260,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             usage="show-phone <ім'я>",
             description="Показати інформацію та телефони контакту",
             category="Contacts",
+            example="show-phone Anna",
         ),
         "change-phone": Command(
             handler=change_phone,
@@ -264,6 +268,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             usage="change-phone <ім'я> <старий_телефон> <новий_телефон>",
             description="Змінити існуючий номер телефону контакту",
             category="Contacts",
+            example="change-phone Anna 0501234567 0509998877",
         ),
         "delete-phone": Command(
             handler=delete_phone,
@@ -271,6 +276,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             usage="delete-phone <ім'я> <телефон>",
             description="Видалити номер телефону у контакту",
             category="Contacts",
+            example="delete-phone Anna 0501234567",
         ),
         "add-birthday": Command(
             handler=add_birthday,
@@ -278,6 +284,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             usage="add-birthday <ім'я> <дн - ДД.ММ.РРРР>",
             description="Додати день народження до контакту",
             category="Contacts",
+            example="add-birthday Anna 15.03.1995",
         ),
         "show-birthday": Command(
             handler=show_birthday,
@@ -285,6 +292,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             usage="show-birthday <ім'я>",
             description="Показати день народження контакту",
             category="Contacts",
+            example="show-birthday Anna",
         ),
         "change-birthday": Command(
             handler=change_birthday,
@@ -292,6 +300,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             usage="change-birthday <ім'я> <дн - ДД.ММ.РРРР>",
             description="Змінити день народження контакту",
             category="Contacts",
+            example="change-birthday Anna 20.04.1996",
         ),
         "delete-birthday": Command(
             handler=delete_birthday,
@@ -299,14 +308,14 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             usage="delete-birthday <ім'я>",
             description="Видалити день народження у контакту",
             category="Contacts",
+            example="delete-birthday Anna",
         ),
         "upcoming-birthdays": Command(
             handler=upcoming_birthdays,
             usage="upcoming-birthdays [дні=7]",
-            description=(
-                "Показати контакти з днями народження у найближчі дні"
-            ),
+            description=("Показати контакти з днями народження у найближчі дні"),
             category="Contacts",
+            example="upcoming-birthdays 14",
         ),
         "add-email": Command(
             handler=add_email,
@@ -314,6 +323,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             arg_completer=lambda args: complete_contact_name(book, args),
             description="Додати email до контакту",
             category="Contacts",
+            example="add-email Anna anna@mail.com",
         ),
         "change-email": Command(
             handler=change_email,
@@ -321,6 +331,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             usage="change-email <ім'я> <новий_email>",
             description="Змінити email контакту",
             category="Contacts",
+            example="change-email Anna new@mail.com",
         ),
         "delete-email": Command(
             handler=delete_email,
@@ -328,6 +339,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             usage="delete-email <ім'я>",
             description="Видалити email у контакту",
             category="Contacts",
+            example="delete-email Anna",
         ),
         "add-address": Command(
             handler=add_address,
@@ -335,6 +347,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             usage="add-address <ім'я> <адреса...>",
             description="Додати адресу до контакту",
             category="Contacts",
+            example="add-address Anna Київ, вул. Хрещатик 1",
         ),
         "change-address": Command(
             handler=change_address,
@@ -342,6 +355,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             usage="change-address <ім'я> <нова_адреса...>",
             description="Змінити адресу контакту",
             category="Contacts",
+            example="change-address Anna Львів, пл. Ринок 5",
         ),
         "delete-address": Command(
             handler=delete_address,
@@ -349,5 +363,6 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             usage="delete-address <ім'я>",
             description="Видалити адресу у контакту",
             category="Contacts",
+            example="delete-address Anna",
         ),
     }
