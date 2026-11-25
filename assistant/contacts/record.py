@@ -1,6 +1,6 @@
 from typing import Any
 
-from assistant.core.exceptions import ExtendedValueError
+from assistant.core.exceptions import AlreadyExistsError, ExtendedValueError
 from assistant.core.fields import Address, Birthday, Email, Name, Phone
 
 
@@ -13,7 +13,12 @@ class Record:
         self.address: Address | None = None
 
     def add_phone(self, phone: str) -> None:
-        self.phones.append(Phone(phone))
+        new_phone = Phone(phone)
+        if self.find_phone(new_phone.value):
+            raise AlreadyExistsError(
+                f"Phone number {phone} already exists for {self.name.value}."
+            )
+        self.phones.append(new_phone)
 
     def add_email(self, value: str) -> None:
         self.email = Email(value)
@@ -26,13 +31,18 @@ class Record:
 
     def edit_phone(self, old_phone: str, new_phone: str) -> None:
         phone_to_edit = self.find_phone(old_phone)
-        if phone_to_edit:
-            index = self.phones.index(phone_to_edit)
-            self.phones[index] = Phone(new_phone)
-        else:
+        if phone_to_edit is None:
             raise ExtendedValueError(
                 f"Phone number {old_phone} doesn't exist."
             )
+        replacement = Phone(new_phone)
+        if new_phone != old_phone and self.find_phone(new_phone):
+            raise AlreadyExistsError(
+                f"Phone number {new_phone} already exists "
+                f"for {self.name.value}."
+            )
+        index = self.phones.index(phone_to_edit)
+        self.phones[index] = replacement
 
     def find_phone(self, number: str) -> Phone | None:
         return next(
@@ -69,7 +79,8 @@ class Record:
     def from_dict(data: dict[str, Any]) -> "Record":
         record = Record(data["name"])
         for phone in data.get("phones", []):
-            record.add_phone(phone)
+            if record.find_phone(phone) is None:
+                record.add_phone(phone)
         birthday_str = data.get("birthday")
         if birthday_str:
             record.add_birthday(birthday_str)
