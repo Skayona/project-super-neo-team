@@ -13,3 +13,4 @@ class Command:
     category: Category
     arg_completer: ArgCompleter | None = None
     example: str = ""
+    mutates: bool = False

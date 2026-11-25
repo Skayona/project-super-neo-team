@@ -28,6 +28,10 @@ def save_address_book(
     os.replace(temp_file, file_path)
 
 
+def save_all(book: AddressBook) -> None:
+    save_address_book(book)
+
+
 def load_address_book(file_path: Path = CONTACTS_FILE) -> AddressBook:
     if not file_path.exists():
         return AddressBook()
