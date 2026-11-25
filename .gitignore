@@ -224,8 +224,3 @@ __marimo__/
 .DS_Store
 # Local planning and notes
 docs/plans/
-
-
-# Local assistant storage
-.assistant_storage/
-
