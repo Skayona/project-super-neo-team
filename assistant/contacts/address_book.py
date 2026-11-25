@@ -1,9 +1,19 @@
 from collections import UserDict
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any
 
 from assistant.contacts.record import Record
 from assistant.core.exceptions import AlreadyExistsError, ExtendedValueError
+
+
+@dataclass(frozen=True)
+class UpcomingBirthday:
+    name: str
+    birthday: date
+    days_left: int
+    age: int
+    congratulation_date: date
 
 
 class AddressBook(UserDict[str, Record]):
@@ -34,51 +44,41 @@ class AddressBook(UserDict[str, Record]):
     def to_dict(self) -> dict[str, dict[str, str]]:
         return {name: record.to_dict() for name, record in self.data.items()}
 
-    def get_upcoming_birthdays(self) -> list[dict[str, str]]:
-        today = datetime.today().date()
-        date_str_format = "%d.%m.%Y"
-        congratulation_list: list[dict[str, str]] = []
-
-        for name, user in self.data.items():
-            if user.birthday is None:
-                continue
-
-            users_bd = datetime.strptime(
-                user.birthday.value, date_str_format
-            ).date()
-            birthday_this_year = self.__handle_leap_year(users_bd, today.year)
-
-            should_notify_next_year = (
-                today.weekday() == 0
-                and (today - birthday_this_year).days > 2
-                or today.weekday() > 0
-                and birthday_this_year < today
+    def get_upcoming_birthdays(self, days: int = 7) -> list[UpcomingBirthday]:
+        if not 1 <= days <= 365:
+            raise ExtendedValueError(
+                "Кількість днів — ціле число від 1 до 365"
             )
 
-            if should_notify_next_year:
-                birthday_this_year = self.__handle_leap_year(
-                    users_bd, today.year + 1
+        today = date.today()
+        results = []
+        for name, record in self.items():
+            if record.birthday is None:
+                continue
+
+            birth_date = datetime.strptime(
+                record.birthday.value, "%d.%m.%Y"
+            ).date()
+            birthday = self.__handle_leap_year(birth_date, today.year)
+            if birthday < today:
+                birthday = self.__handle_leap_year(
+                    birth_date, today.year + 1
                 )
 
-            diff = (birthday_this_year - today).days
+            days_left = (birthday - today).days
+            if days_left > days:
+                continue
 
-            if diff < 7:
-                birthday_weekday = birthday_this_year.weekday()
-
-                if birthday_weekday >= 5:
-                    first_weekday = 7 - birthday_weekday
-                    birthday_this_year += timedelta(days=first_weekday)
-
-                congratulation_list.append(
-                    {
-                        "name": name,
-                        "congratulation_date": birthday_this_year.strftime(
-                            date_str_format
-                        ),
-                    }
+            congratulation_date = birthday
+            if birthday.weekday() >= 5:
+                congratulation_date += timedelta(days=7 - birthday.weekday())
+            results.append(
+                UpcomingBirthday(
+                    name, birthday, days_left,
+                    birthday.year - birth_date.year, congratulation_date,
                 )
-
-        return congratulation_list
+            )
+        return sorted(results, key=lambda result: result.birthday)
 
     @staticmethod
     def __handle_leap_year(d: date, year: int) -> date:
