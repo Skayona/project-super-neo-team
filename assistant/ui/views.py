@@ -1,12 +1,11 @@
+from difflib import get_close_matches
+from typing import get_args
+
 from rich import box
 from rich.panel import Panel
 from rich.table import Table
 
-from typing import get_args
-
-from difflib import get_close_matches
-
-from assistant.core.command import Command, Category
+from assistant.core.command import Category, Command
 
 
 def format_info(text: str) -> Panel:

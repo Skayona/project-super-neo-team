@@ -1,14 +1,16 @@
-from typing import Any, Callable
+
+from collections.abc import Callable
+from functools import partial
+from typing import Any
 
 from rich.panel import Panel
-
-from functools import partial
 
 from assistant.contacts.address_book import AddressBook
 from assistant.core.command import Command
 from assistant.core.input_error_decorator import input_error
 from assistant.storage.storage import save_address_book
-from assistant.ui.views import format_info, format_help, format_command_card
+from assistant.ui.views import format_command_card, format_help, format_info
+
 
 @input_error
 def parse_input(user_input: str) -> tuple[str, ...]:

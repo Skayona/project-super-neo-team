@@ -17,6 +17,7 @@ from assistant.ui.views import (
     format_table,
 )
 
+
 def get_record(book: AddressBook, name: str) -> Record:
     record = book.find(name)
     if record is None:
@@ -222,7 +223,8 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
                 "('-' для пропуску поля, напр.: add-contact Anna - a@m.com)"
             ),
             category="Contacts",
-            example="add-contact Anna 0501234567 anna@mail.com 15.03.1995 Київ, вул. Хрещатик 1",
+            example=
+            "add-contact Anna 0501234567 anna@mail.com 15.03.1995 Київ",
         ),
         "delete-contact": Command(
             handler=delete_contact,
@@ -313,7 +315,8 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
         "upcoming-birthdays": Command(
             handler=upcoming_birthdays,
             usage="upcoming-birthdays [дні=7]",
-            description=("Показати контакти з днями народження у найближчі дні"),
+            description=
+            ("Показати контакти з днями народження у найближчі дні"),
             category="Contacts",
             example="upcoming-birthdays 14",
         ),

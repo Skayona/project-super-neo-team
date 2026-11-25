@@ -1,6 +1,3 @@
-# NOTE: every new command group (Notes, etc.) must be registered here via
-# commands.update(...). Otherwise it will NOT appear in `help`.
-
 from rich.console import Console
 
 from assistant.contacts.handlers_registry import build_contacts_commands
@@ -26,7 +23,8 @@ def main():
     
     # TODO(notes): register the Notes commands below, e.g.
     # commands.update(build_notes_commands(book))
-    # They must have category="Notes" to appear in `help`.    commands.update(build_general_commands(lambda: commands))
+    # They must have category="Notes" to appear in `help`.    
+    commands.update(build_general_commands(lambda: commands))
     
     session = init_assistant_completer(commands)
 
