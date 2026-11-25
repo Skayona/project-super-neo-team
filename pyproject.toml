@@ -13,6 +13,12 @@ dependencies = [
     "rich>=15.0.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.11.0",
+    "ruff>=0.6.0",
+]
+
 [project.scripts]
 assistant = "assistant.cli:main"
 
