@@ -4,21 +4,14 @@ from pathlib import Path
 
 from assistant.contacts.address_book import AddressBook
 
-# saved in the same project instead of Path.home() / ".assistant_storage"
-# to avoid clutter the users disk
-STORAGE_DIR = Path(".assistant_storage")
+STORAGE_DIR = Path.home() / "assistant_storage"
 CONTACTS_FILE = STORAGE_DIR / "address_book.json"
-
-
-def check_storage_dir() -> Path:
-    STORAGE_DIR.mkdir(parents=True, exist_ok=True)
-    return STORAGE_DIR
 
 
 def save_address_book(
     book: AddressBook, file_path: Path = CONTACTS_FILE
 ) -> None:
-    check_storage_dir()
+    file_path.parent.mkdir(parents=True, exist_ok=True)
     temp_file = file_path.with_suffix(".tmp")
     data = book.to_dict()
 
