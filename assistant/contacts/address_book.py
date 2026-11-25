@@ -3,25 +3,33 @@ from datetime import date, datetime, timedelta
 from typing import Any
 
 from assistant.contacts.record import Record
-from assistant.core.exceptions import ExtendedValueError
+from assistant.core.exceptions import AlreadyExistsError, ExtendedValueError
 
 
 class AddressBook(UserDict[str, Record]):
     def add_record(self, record: Record) -> None:
         name = record.name.value
-        if name in self.data:
-            raise ExtendedValueError("Contact already exists.")
+        if self.find(name) is not None:
+            raise AlreadyExistsError("Contact already exists.")
 
         self.data[name] = record
 
     def find(self, name: str) -> Record | None:
-        return self.data.get(name)
+        needle = name.strip().casefold()
+        return next(
+            (
+                record
+                for key, record in self.data.items()
+                if key.casefold() == needle
+            ),
+            None,
+        )
 
     def delete(self, name: str) -> None:
-        if name in self.data:
-            del self.data[name]
-        else:
+        record = self.find(name)
+        if record is None:
             raise ExtendedValueError("Contact doesn't exist.")
+        del self.data[record.name.value]
 
     def to_dict(self) -> dict[str, dict[str, str]]:
         return {name: record.to_dict() for name, record in self.data.items()}
@@ -31,9 +39,8 @@ class AddressBook(UserDict[str, Record]):
         date_str_format = "%d.%m.%Y"
         congratulation_list: list[dict[str, str]] = []
 
-        for name in self.data:
-            user = self.find(name)
-            if user is None or user.birthday is None:
+        for name, user in self.data.items():
+            if user.birthday is None:
                 continue
 
             users_bd = datetime.strptime(

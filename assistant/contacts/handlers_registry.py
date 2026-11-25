@@ -6,9 +6,8 @@ from rich.table import Table
 from assistant.contacts.address_book import AddressBook
 from assistant.contacts.record import Record
 from assistant.core.command import Command
-from assistant.core.exceptions import (
-    MissingContactError,
-)
+from assistant.core.exceptions import AlreadyExistsError, MissingContactError
+from assistant.core.fields import Address, Birthday, Email, Phone
 from assistant.core.input_error_decorator import input_error
 from assistant.ui.views import (
     format_card,
@@ -25,21 +24,32 @@ def get_record(book: AddressBook, name: str) -> Record:
     return record
 
 
-# Modifies passed record entity without returning it.
+# Validates all fields first; modifies record only if everything is valid.
 def add_contact_info(record: Record, args: list[str]) -> None:
     phone = args[0] if len(args) > 0 and args[0] != "-" else None
     email = args[1] if len(args) > 1 and args[1] != "-" else None
     birthday = args[2] if len(args) > 2 and args[2] != "-" else None
     plain_address = " ".join(args[3:]) if len(args) > 3 else None
 
-    if phone:
-        record.add_phone(phone)
-    if email:
-        record.add_email(email)
-    if birthday:
-        record.add_birthday(birthday)
-    if plain_address:
-        record.add_address(plain_address)
+    new_phone = Phone(phone) if phone else None
+    new_email = Email(email) if email else None
+    new_birthday = Birthday(birthday) if birthday else None
+    new_address = Address(plain_address) if plain_address else None
+
+    if new_phone and record.find_phone(new_phone.value):
+        raise AlreadyExistsError(
+            f"Phone number {new_phone.value} already exists "
+            f"for {record.name.value}."
+        )
+
+    if new_phone:
+        record.phones.append(new_phone)
+    if new_email:
+        record.email = new_email
+    if new_birthday:
+        record.birthday = new_birthday
+    if new_address:
+        record.address = new_address
 
 
 @input_error
@@ -218,10 +228,13 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
     return {
         "add-contact": Command(
             handler=add_contact,
-            usage="add-contact <ім'я> [телефон] [email] [ДД.ММ.РРРР] [адреса]",
+            usage=(
+                "add-contact <ім'я> [телефон] [email] [ДД.ММ.РРРР] [адреса]"
+            ),
             description=(
                 "Додати контакт або оновити існуючий "
-                "('-' для пропуску поля, напр.: add-contact Anna - a@m.com)"
+                "('-' для пропуску поля, напр.: add-contact Anna - a@m.com; "
+                'імʼя з пробілом — у лапках: "Anna Petrenko")'
             ),
             category="Contacts",
         ),
