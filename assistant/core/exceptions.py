@@ -20,3 +20,7 @@ class ExtendedValueError(Exception):
 
 class AlreadyExistsError(ExtendedValueError):
     """Raised when a value (phone, contact) already exists."""
+
+
+class UsageError(ExtendedValueError):
+    pass

@@ -1,3 +1,4 @@
+import re
 from collections import UserDict
 from datetime import date, datetime, timedelta
 from typing import Any
@@ -24,6 +25,32 @@ class AddressBook(UserDict[str, Record]):
             ),
             None,
         )
+
+    def search(self, query: str) -> list[Record]:
+        query = query.strip().casefold()
+        if not query:
+            return []
+
+        phone_query = ""
+        if re.fullmatch(r"[\d\s()+.-]+", query):
+            phone_query = re.sub(r"\D", "", query)
+
+        matches = []
+        for record in self.values():
+            fields = (
+                record.name, record.email, record.address, record.birthday
+            )
+            matches_field = any(
+                field is not None and query in field.value.casefold()
+                for field in fields
+            )
+            matches_phone = phone_query and any(
+                phone_query in re.sub(r"\D", "", phone.value)
+                for phone in record.phones
+            )
+            if matches_field or matches_phone:
+                matches.append(record)
+        return matches
 
     def delete(self, name: str) -> None:
         record = self.find(name)
