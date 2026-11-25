@@ -39,6 +39,16 @@ def format_error(text: str) -> Panel:
     )
 
 
+def format_warn(text: str) -> Panel:
+    return Panel(
+        f"\n{escape(text)}\n",
+        title_align="left",
+        box=box.ROUNDED,
+        border_style="yellow",
+        title="[bold yellow] ⚠ Увага [/]",
+    )
+
+
 def format_card(title: str, data: dict[str, str]) -> Panel:
     lines = [
         f"[bold magenta]{escape(key)}:[/] {escape(value) or '—'}"

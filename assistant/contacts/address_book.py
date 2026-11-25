@@ -2,8 +2,13 @@ from collections import UserDict
 from datetime import date, datetime, timedelta
 from typing import Any
 
+from rich.console import Console
+
 from assistant.contacts.record import Record
 from assistant.core.exceptions import AlreadyExistsError, ExtendedValueError
+from assistant.ui.views import format_warn
+
+console = Console()
 
 
 class AddressBook(UserDict[str, Record]):
@@ -88,8 +93,38 @@ class AddressBook(UserDict[str, Record]):
             return d.replace(year=year, month=3, day=1)
 
     @staticmethod
+    def print_unpack_book_error() -> None:
+        console.print(
+            format_warn(
+                "Файл адресної книги пошкоджено або недоступний. "
+                "Завантажено порожню книгу."
+            )
+        )
+
+    @staticmethod
     def from_dict(data: dict[str, Any]) -> "AddressBook":
         book = AddressBook()
+        if not isinstance(data, dict):
+            AddressBook.print_unpack_book_error()
+            return book
+
+        skipped = 0
         for record_data in data.values():
-            book.add_record(Record.from_dict(record_data))
+            if not isinstance(record_data, dict):
+                skipped += 1
+                continue
+
+            try:
+                book.add_record(Record.from_dict(record_data))
+            except Exception:
+                skipped += 1
+
+        if skipped:
+            console.print(
+                format_warn(
+                    "Під час завантаження книги було пропущено некоректних "
+                    f"записів: {skipped}.\n"
+                    "Некоректні аписи будуть видалені з книги."
+                )
+            )
         return book
