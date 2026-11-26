@@ -3,8 +3,9 @@ from typing import Any
 from assistant.core.exceptions import (
     BirthdayExistsError,
     BirthdayNotFoundError,
+    NotFoundError
     PhoneExistsError,
-    PhoneNotFoundError,
+    PhoneNotFoundError
 )
 from assistant.core.fields import Address, Birthday, Email, Name, Phone
 
