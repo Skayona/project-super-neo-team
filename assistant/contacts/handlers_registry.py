@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+from functools import partial
 from typing import Any
 
 from rich.panel import Panel
@@ -5,8 +7,13 @@ from rich.table import Table
 
 from assistant.contacts.address_book import AddressBook
 from assistant.contacts.record import Record
-from assistant.core.command import Command
-from assistant.core.exceptions import AlreadyExistsError, MissingContactError
+from assistant.core.command import Command, MutationCommand
+from assistant.core.exceptions import (
+    AlreadyExistsError,
+    ContactNotFoundError,
+    PhoneExistsError,
+    UsageError,
+)
 from assistant.core.fields import Address, Birthday, Email, Phone
 from assistant.core.input_error_decorator import input_error
 from assistant.ui.views import (
@@ -20,7 +27,7 @@ from assistant.ui.views import (
 def get_record(book: AddressBook, name: str) -> Record:
     record = book.find(name)
     if record is None:
-        raise MissingContactError(name)
+        raise ContactNotFoundError(name)
     return record
 
 
@@ -37,10 +44,7 @@ def add_contact_info(record: Record, args: list[str]) -> None:
     new_address = Address(plain_address) if plain_address else None
 
     if new_phone and record.find_phone(new_phone.value):
-        raise AlreadyExistsError(
-            f"Phone number {new_phone.value} already exists "
-            f"for {record.name.value}."
-        )
+        raise PhoneExistsError(new_phone.value, record.name.value)
 
     if new_phone:
         record.phones.append(new_phone)
@@ -77,15 +81,27 @@ def delete_contact(book: AddressBook, args: list[str]) -> Panel:
 
 
 @input_error
-def find_contact(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+def find_contact(book: AddressBook, args: list[str]) -> Table | Panel:
+    query = " ".join(args).strip()
+    if not query:
+        raise UsageError("Використання: find-contact <запит...>")
+
+    matches = book.search(query)
+    if not matches:
+        return format_info(f"Контактів за запитом «{query}» не знайдено.")
+    return render_contacts_table(matches, "Результати пошуку")
 
 
 def show_all_contacts(book: AddressBook, *_: Any) -> Table | Panel:
-    title = "Список усіх контактів"
+    return render_contacts_table(book.values(), "Список усіх контактів")
+
+
+def render_contacts_table(
+    records: Iterable[Record], title: str
+) -> Table | Panel:
     headers = ["Імʼя", "Дата народження", "Телефон(и)", "Адреса", "Пошта"]
     rows = []
-    for record in book.values():
+    for record in records:
         record_dict = record.to_dict()
         rows.append(
             [
@@ -111,7 +127,10 @@ def add_phone(book: AddressBook, args: list[str]) -> Panel:
 def show_phone(book: AddressBook, args: list[str]) -> Panel:
     name = args[0]
     record = get_record(book, name)
-    return format_success(record.show_all_phones())
+    return format_card(
+        f"Контакт: {name}",
+        {"Телефони": record.show_all_phones()},
+    )
 
 
 @input_error
@@ -148,13 +167,20 @@ def show_birthday(book: AddressBook, args: list[str]) -> Panel | str:
 
 
 @input_error
-def change_birthday(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+def change_birthday(book: AddressBook, args: list[str]) -> Panel:
+    name = args[0]
+    date = args[1]
+    record = get_record(book,name)
+    record.change_birthday(date)
+    return format_success(f"Дату народження контакту {name} змінено")
 
 
 @input_error
-def delete_birthday(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+def delete_birthday(book: AddressBook, args: list[str]) -> Panel:
+    name = args[0]
+    record = get_record(book, name)
+    record.delete_birthday()
+    return format_success("Дату народження видалено")
 
 
 @input_error
@@ -180,11 +206,11 @@ def upcoming_birthdays(
     rows = [
         [
             item.name,
-            item.birthday.strftime("%d.%m.%Y"),
+            item.birthday.strftime(Birthday.DATE_FORMAT),
             weekdays[item.birthday.weekday()],
             str(item.days_left),
             str(item.age),
-            item.congratulation_date.strftime("%d.%m.%Y"),
+            item.congratulation_date.strftime(Birthday.DATE_FORMAT),
         ]
         for item in book.get_upcoming_birthdays(days)
     ]
@@ -193,33 +219,68 @@ def upcoming_birthdays(
 
 
 @input_error
-def add_email(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+def add_email(book: AddressBook, args: list[str]) -> Panel:
+    name, email, *_ = args
+    record = get_record(book, name)
+    if record.email is not None:
+        raise AlreadyExistsError(
+            f"У контакту {name} вже є email {record.email.value}. "
+            f"Щоб замінити, використайте change-email."
+        )
+    record.add_email(email)
+    return format_success(f"Email {email} додано до контакту {name}")
 
 
 @input_error
-def change_email(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+def change_email(book: AddressBook, args: list[str]) -> Panel:
+    name, email, *_ = args
+    record = get_record(book, name)
+    record.edit_email(email)
+    return format_success(f"Email контакту {name} змінено на {email}")
 
 
 @input_error
-def delete_email(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+def delete_email(book: AddressBook, args: list[str]) -> Panel:
+    name, *_ = args
+    record = get_record(book, name)
+    record.delete_email()
+    return format_success(f"Email контакту {name} видалено")
+
+
+def parse_name_and_address(args: list[str]) -> tuple[str, str]:
+    name, *rest = args
+    if not rest:
+        raise UsageError("Недостатньо аргументів.")
+    return name, " ".join(rest)
 
 
 @input_error
-def add_address(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+def add_address(book: AddressBook, args: list[str]) -> Panel:
+    name, address = parse_name_and_address(args)
+    record = get_record(book, name)
+    if record.address is not None:
+        raise AlreadyExistsError(
+            f"У контакту {name} вже є адреса. "
+            f"Щоб замінити, використайте change-address."
+        )
+    record.add_address(address)
+    return format_success(f"Адресу контакту {name} додано: {address}")
 
 
 @input_error
-def change_address(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+def change_address(book: AddressBook, args: list[str]) -> Panel:
+    name, address = parse_name_and_address(args)
+    record = get_record(book, name)
+    record.edit_address(address)
+    return format_success(f"Адресу контакту {name} змінено на: {address}")
 
 
 @input_error
-def delete_address(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+def delete_address(book: AddressBook, args: list[str]) -> Panel:
+    name, *_ = args
+    record = get_record(book, name)
+    record.delete_address()
+    return format_success(f"Адресу контакту {name} видалено")
 
 
 # Complete logic for prompt showing suggestions
@@ -245,8 +306,8 @@ def complete_name_and_phone(book: AddressBook, args: list[str]) -> list[str]:
 
 def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
     return {
-        "add-contact": Command(
-            handler=add_contact,
+        "add-contact": MutationCommand(
+            handler=partial(add_contact, book),
             usage=(
                 "add-contact <ім'я> [телефон] [email] [ДД.ММ.РРРР] [адреса]"
             ),
@@ -256,11 +317,11 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
                 'імʼя з пробілом — у лапках: "Anna Petrenko")'
             ),
             category="Contacts",
-            example=
-            "add-contact Anna 0501234567 anna@mail.com 15.03.1995 Київ",
+            example="add-contact Anna 0501234567 anna@mail.com 15.03.1995 "
+            "Київ",
         ),
-        "delete-contact": Command(
-            handler=delete_contact,
+        "delete-contact": MutationCommand(
+            handler=partial(delete_contact, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="delete-contact <ім'я>",
             description="Видалити контакт із книги",
@@ -268,21 +329,24 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="delete-contact Anna",
         ),
         "find-contact": Command(
-            handler=find_contact,
+            handler=partial(find_contact, book),
             usage="find-contact <запит...>",
-            description="Знайти контакти за іменем, телефоном або email",
+            description=(
+                "Знайти контакти за іменем, телефоном, email, "
+                "адресою або датою народження"
+            ),
             category="Contacts",
             example="find-contact Anna",
         ),
         "show-all-contacts": Command(
-            handler=show_all_contacts,
+            handler=partial(show_all_contacts, book),
             usage="show-all-contacts",
             description="Показати всі збережені контакти",
             category="Contacts",
             example="show-all-contacts",
         ),
-        "add-phone": Command(
-            handler=add_phone,
+        "add-phone": MutationCommand(
+            handler=partial(add_phone, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="add-phone <ім'я> <телефон>",
             description="Додати додатковий номер телефону до контакту",
@@ -290,31 +354,31 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="add-phone Anna 0507654321",
         ),
         "show-phone": Command(
-            handler=show_phone,
+            handler=partial(show_phone, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="show-phone <ім'я>",
             description="Показати інформацію та телефони контакту",
             category="Contacts",
             example="show-phone Anna",
         ),
-        "change-phone": Command(
-            handler=change_phone,
+        "change-phone": MutationCommand(
+            handler=partial(change_phone, book),
             arg_completer=lambda args: complete_name_and_phone(book, args),
             usage="change-phone <ім'я> <старий_телефон> <новий_телефон>",
             description="Змінити існуючий номер телефону контакту",
             category="Contacts",
             example="change-phone Anna 0501234567 0509998877",
         ),
-        "delete-phone": Command(
-            handler=delete_phone,
+        "delete-phone": MutationCommand(
+            handler=partial(delete_phone, book),
             arg_completer=lambda args: complete_name_and_phone(book, args),
             usage="delete-phone <ім'я> <телефон>",
             description="Видалити номер телефону у контакту",
             category="Contacts",
             example="delete-phone Anna 0501234567",
         ),
-        "add-birthday": Command(
-            handler=add_birthday,
+        "add-birthday": MutationCommand(
+            handler=partial(add_birthday, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="add-birthday <ім'я> <дн - ДД.ММ.РРРР>",
             description="Додати день народження до контакту",
@@ -322,23 +386,23 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="add-birthday Anna 15.03.1995",
         ),
         "show-birthday": Command(
-            handler=show_birthday,
+            handler=partial(show_birthday, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="show-birthday <ім'я>",
             description="Показати день народження контакту",
             category="Contacts",
             example="show-birthday Anna",
         ),
-        "change-birthday": Command(
-            handler=change_birthday,
+        "change-birthday": MutationCommand(
+            handler=partial(change_birthday, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="change-birthday <ім'я> <дн - ДД.ММ.РРРР>",
             description="Змінити день народження контакту",
             category="Contacts",
             example="change-birthday Anna 20.04.1996",
         ),
-        "delete-birthday": Command(
-            handler=delete_birthday,
+        "delete-birthday": MutationCommand(
+            handler=partial(delete_birthday, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="delete-birthday <ім'я>",
             description="Видалити день народження у контакту",
@@ -346,54 +410,54 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="delete-birthday Anna",
         ),
         "upcoming-birthdays": Command(
-            handler=upcoming_birthdays,
+            handler=partial(upcoming_birthdays, book),
             usage="upcoming-birthdays [дні=7]",
             description="Показати дні народження в межах заданого періоду",
             category="Contacts",
             example="upcoming-birthdays 14",
         ),
-        "add-email": Command(
-            handler=add_email,
+        "add-email": MutationCommand(
+            handler=partial(add_email, book),
             usage="add-email <ім'я> <email>",
             arg_completer=lambda args: complete_contact_name(book, args),
             description="Додати email до контакту",
             category="Contacts",
             example="add-email Anna anna@mail.com",
         ),
-        "change-email": Command(
-            handler=change_email,
+        "change-email": MutationCommand(
+            handler=partial(change_email, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="change-email <ім'я> <новий_email>",
             description="Змінити email контакту",
             category="Contacts",
             example="change-email Anna new@mail.com",
         ),
-        "delete-email": Command(
-            handler=delete_email,
+        "delete-email": MutationCommand(
+            handler=partial(delete_email, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="delete-email <ім'я>",
             description="Видалити email у контакту",
             category="Contacts",
             example="delete-email Anna",
         ),
-        "add-address": Command(
-            handler=add_address,
+        "add-address": MutationCommand(
+            handler=partial(add_address, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="add-address <ім'я> <адреса...>",
             description="Додати адресу до контакту",
             category="Contacts",
             example="add-address Anna Київ, вул. Хрещатик 1",
         ),
-        "change-address": Command(
-            handler=change_address,
+        "change-address": MutationCommand(
+            handler=partial(change_address, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="change-address <ім'я> <нова_адреса...>",
             description="Змінити адресу контакту",
             category="Contacts",
             example="change-address Anna Львів, пл. Ринок 5",
         ),
-        "delete-address": Command(
-            handler=delete_address,
+        "delete-address": MutationCommand(
+            handler=partial(delete_address, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="delete-address <ім'я>",
             description="Видалити адресу у контакту",

@@ -1,6 +1,14 @@
+from contextlib import suppress
 from typing import Any
 
-from assistant.core.exceptions import AlreadyExistsError, ExtendedValueError
+from assistant.core.exceptions import (
+    BirthdayExistsError,
+    BirthdayNotFoundError,
+    NotFoundError,
+    PhoneExistsError,
+    PhoneNotFoundError,
+    ValidationError,
+)
 from assistant.core.fields import Address, Birthday, Email, Name, Phone
 
 
@@ -15,38 +23,37 @@ class Record:
     def add_phone(self, phone: str) -> None:
         new_phone = Phone(phone)
         if self.find_phone(new_phone.value):
-            raise AlreadyExistsError(
-                f"Phone number {phone} already exists for {self.name.value}."
-            )
+            raise PhoneExistsError(new_phone.value, self.name.value)
         self.phones.append(new_phone)
 
     def add_email(self, value: str) -> None:
         self.email = Email(value)
 
-    def remove_phone(self, phone: str) -> None:
-        phone_to_remove = self.find_phone(phone)
-        if phone_to_remove is None:
-            raise ExtendedValueError(f"Phone number {phone} doesn't exist.")
-        self.phones.remove(phone_to_remove)
+    def edit_email(self, value: str) -> None:
+        if self.email is None:
+            raise NotFoundError(f"У контакту {self.name.value} немає email.")
+        self.email = Email(value)
+
+    def delete_email(self) -> None:
+        if self.email is None:
+            raise NotFoundError(f"У контакту {self.name.value} немає email.")
+        self.email = None
 
     def edit_phone(self, old_phone: str, new_phone: str) -> None:
         phone_to_edit = self.find_phone(old_phone)
         if phone_to_edit is None:
-            raise ExtendedValueError(
-                f"Phone number {old_phone} doesn't exist."
-            )
+            raise PhoneNotFoundError(old_phone)
         replacement = Phone(new_phone)
-        if new_phone != old_phone and self.find_phone(new_phone):
-            raise AlreadyExistsError(
-                f"Phone number {new_phone} already exists "
-                f"for {self.name.value}."
-            )
+        if replacement != phone_to_edit and self.find_phone(replacement.value):
+            raise PhoneExistsError(replacement.value, self.name.value)
         index = self.phones.index(phone_to_edit)
         self.phones[index] = replacement
 
     def find_phone(self, number: str) -> Phone | None:
+        target = Phone.normalize(number)
         return next(
-            (phone for phone in self.phones if phone.value == number), None
+            (phone for phone in self.phones if phone.value == target),
+            None,
         )
 
     def delete_phone(self, phone: str) -> None:
@@ -54,13 +61,36 @@ class Record:
         if phone_to_delete:
             self.phones.remove(phone_to_delete)
         else:
-            raise ExtendedValueError(f"Phone number {phone} doesn't exist.")
+            raise PhoneNotFoundError(phone)
 
     def add_birthday(self, date: str) -> None:
+        if self.birthday is not None:
+            raise BirthdayExistsError(self.name.value)
+        self.birthday = Birthday(date)
+
+    def delete_birthday(self) -> None:
+        if self.birthday is None:
+            raise BirthdayNotFoundError(self.name.value)
+        self.birthday = None
+
+    def change_birthday(self, date: str) -> None:
+        if self.birthday is None:
+            raise BirthdayNotFoundError(self.name.value)
+
         self.birthday = Birthday(date)
 
     def add_address(self, value: str) -> None:
-        self.address = Address(value)  # noqa: F821
+        self.address = Address(value)
+
+    def edit_address(self, value: str) -> None:
+        if self.address is None:
+            raise NotFoundError(f"У контакту {self.name.value} немає адреси.")
+        self.address = Address(value)
+
+    def delete_address(self) -> None:
+        if self.address is None:
+            raise NotFoundError(f"У контакту {self.name.value} немає адреси.")
+        self.address = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -72,24 +102,24 @@ class Record:
         }
 
     def show_all_phones(self) -> str:
-        phones = "; ".join(p.value for p in self.phones)
-        return f"Phones for {self.name.value}: {phones}"
+        return "; ".join(p.value for p in self.phones)
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "Record":
         record = Record(data["name"])
         for phone in data.get("phones", []):
             if record.find_phone(phone) is None:
-                record.add_phone(phone)
-        birthday_str = data.get("birthday")
-        if birthday_str:
-            record.add_birthday(birthday_str)
-        email_str = data.get("email")
-        if email_str:
-            record.add_email(email_str)
-        address_str = data.get("address")
-        if address_str:
-            record.add_address(address_str)
+                with suppress(ValidationError):
+                    record.add_phone(phone)
+        setters = (
+            (record.add_birthday, data.get("birthday")),
+            (record.add_email, data.get("email")),
+            (record.add_address, data.get("address")),
+        )
+        for setter, value in setters:
+            if value:
+                with suppress(ValidationError):
+                    setter(value)
         return record
 
     def __str__(self) -> str:
