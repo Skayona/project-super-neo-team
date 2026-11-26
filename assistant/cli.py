@@ -3,7 +3,7 @@ from rich.console import Console
 
 from assistant.contacts.address_book import AddressBook
 from assistant.contacts.handlers_registry import build_contacts_commands
-from assistant.core.command import Command
+from assistant.core.command import Command, CommandResult
 from assistant.general_commands import (
     ExtendedValueError,
     build_general_commands,
@@ -12,10 +12,10 @@ from assistant.general_commands import (
 )
 from assistant.storage.storage import (
     load_address_book,
-    save_all,
+    save_address_book,
 )
 from assistant.ui.completer import init_assistant_completer
-from assistant.ui.views import ErrorPanel, format_error, format_info
+from assistant.ui.views import format_error, format_info
 
 console = Console()
 
@@ -37,7 +37,7 @@ def main():
     try:
         run_loop(book, commands, session)
     finally:
-        save_all(book)
+        save_address_book(book)
 
 
 def run_loop(
@@ -65,9 +65,12 @@ def run_loop(
 
         if command:
             result = command.handler(book, args)
-            if command.mutates and not isinstance(result, ErrorPanel):
-                save_all(book)
-            console.print(result)
+            if isinstance(result, CommandResult):
+                if command.mutates and result.changed:
+                    save_address_book(book)
+                console.print(result.output)
+            else:
+                console.print(result)
             if command_key in ("close", "exit"):
                 break
         else:

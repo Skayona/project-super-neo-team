@@ -29,12 +29,8 @@ def format_success(text: str) -> Panel:
     )
 
 
-class ErrorPanel(Panel):
-    """Panel returned for a failed command (lets callers detect failure)."""
-
-
 def format_error(text: str) -> Panel:
-    return ErrorPanel(
+    return Panel(
         f"\n{escape(text)}\n",
         title_align="left",
         box=box.ROUNDED,

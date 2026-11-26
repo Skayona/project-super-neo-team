@@ -2,6 +2,7 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
+from assistant.core.command import CommandResult
 from assistant.core.exceptions import (
     BirthdayError,
     ExtendedValueError,
@@ -10,20 +11,28 @@ from assistant.core.exceptions import (
 from assistant.ui.views import format_error
 
 
+def failed(message: str) -> CommandResult:
+    return CommandResult(format_error(message), changed=False)
+
+
 def input_error(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
     def inner(*args: Any, **kwargs: Any) -> Any:
         try:
-            return func(*args, **kwargs)
+            result = func(*args, **kwargs)
         except ValueError:
-            return format_error("Not all data is provided.")
+            return failed("Not all data is provided.")
         except IndexError:
-            return format_error("Enter user name.")
+            return failed("Enter user name.")
         except KeyError:
-            return format_error("Contact not found.")
+            return failed("Contact not found.")
         except NotImplementedError:
-            return format_error("Under construction.")
+            return failed("Under construction.")
         except (ExtendedValueError, MissingContactError, BirthdayError) as e:
-            return format_error(e.message)
+            return failed(e.message)
+
+        if isinstance(result, CommandResult):
+            return result
+        return CommandResult(result, changed=True)
 
     return inner
