@@ -132,10 +132,6 @@ def main() -> None:
     finally:
         assistant_ctx.save_all()
 
-    print(keyword_match("Коли день народження?", commands.keys()))
-    print(keyword_match("Знайди ім’я!", commands.keys()))
-    print(keyword_match("Додай контакт, будь ласка!", commands.keys()))
-
 
 if __name__ == "__main__":
     main()
