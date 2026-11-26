@@ -9,9 +9,7 @@ from assistant.contacts.address_book import AddressBook
 from assistant.contacts.record import Record
 from assistant.core.command import Command, MutationCommand
 from assistant.core.exceptions import (
-    AddressValidationError,
     AlreadyExistsError,
-    BirthdayValidationError,
     ContactNotFoundError,
     PhoneExistsError,
     UsageError,

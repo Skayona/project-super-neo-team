@@ -3,9 +3,9 @@ from typing import Any
 from assistant.core.exceptions import (
     BirthdayExistsError,
     BirthdayNotFoundError,
-    NotFoundError
+    NotFoundError,
     PhoneExistsError,
-    PhoneNotFoundError
+    PhoneNotFoundError,
 )
 from assistant.core.fields import Address, Birthday, Email, Name, Phone
 
@@ -70,7 +70,6 @@ class Record:
         if self.birthday is not None:
             raise BirthdayExistsError(self.name.value)
         self.birthday = Birthday(date)
-        
 
     def delete_birthday(self) -> None:
         if self.birthday is None:
@@ -104,7 +103,7 @@ class Record:
             "email": self.email.value if self.email else None,
             "address": self.address.value if self.address else None,
         }
-    
+
     def show_all_phones(self) -> str:
         return "; ".join(p.value for p in self.phones)
 
