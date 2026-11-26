@@ -18,6 +18,7 @@ def parse_input(user_input: str) -> tuple[str, list[str]]:
     splitter = shlex.shlex(user_input, posix=True)
     splitter.quotes = '"'  # Зберігаємо апострофи в назвах
     splitter.whitespace_split = True
+    splitter.commenters = ""
 
     try:
         splitted_input = list(splitter)

@@ -14,6 +14,12 @@ from assistant.general_commands import (
     parse_input,
 )
 from assistant.notes.notebook import Notebook
+from assistant.notes.notes_commands import (
+    build_add_note_command,
+    build_all_notes_command,
+    build_find_note_command,
+    build_show_note_command,
+)
 from assistant.notes.sort_commands import build_sort_notes_command
 from assistant.storage.storage import load_notebook
 from assistant.ui.completer import init_assistant_completer
@@ -130,6 +136,10 @@ def main() -> None:
         else:
             assistant_ctx.notebook = notebook
     commands["sort-notes"] = build_sort_notes_command(notebook)
+    commands["add-note"] = build_add_note_command(notebook)
+    commands["show-note"] = build_show_note_command(notebook)
+    commands["all-notes"] = build_all_notes_command(notebook)
+    commands["find-note"] = build_find_note_command(notebook)
 
     # TODO(notes): register the Notes commands below, e.g.
     # commands.update(build_notes_commands(assistant_ctx.notebook))
