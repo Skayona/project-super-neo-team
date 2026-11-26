@@ -1,16 +1,21 @@
+import re
 from collections import UserDict
 from datetime import date, datetime, timedelta
 from typing import Any
 
-from assistant.contacts.record import Record
-from assistant.core.exceptions import AlreadyExistsError, ExtendedValueError
+from rich.console import Console
 
+from assistant.contacts.record import Record
+from assistant.core.exceptions import ContactExistsError, ContactNotFoundError
+from assistant.ui.views import format_warn
+
+console = Console()
 
 class AddressBook(UserDict[str, Record]):
     def add_record(self, record: Record) -> None:
         name = record.name.value
         if self.find(name) is not None:
-            raise AlreadyExistsError("Contact already exists.")
+            raise ContactExistsError(name)
 
         self.data[name] = record
 
@@ -25,10 +30,36 @@ class AddressBook(UserDict[str, Record]):
             None,
         )
 
+    def search(self, query: str) -> list[Record]:
+        query = query.strip().casefold()
+        if not query:
+            return []
+
+        phone_query = ""
+        if re.fullmatch(r"[\d\s()+.-]+", query):
+            phone_query = re.sub(r"\D", "", query)
+
+        matches = []
+        for record in self.values():
+            fields = (
+                record.name, record.email, record.address, record.birthday
+            )
+            matches_field = any(
+                field is not None and query in field.value.casefold()
+                for field in fields
+            )
+            matches_phone = phone_query and any(
+                phone_query in re.sub(r"\D", "", phone.value)
+                for phone in record.phones
+            )
+            if matches_field or matches_phone:
+                matches.append(record)
+        return matches
+
     def delete(self, name: str) -> None:
         record = self.find(name)
         if record is None:
-            raise ExtendedValueError("Contact doesn't exist.")
+            raise ContactNotFoundError(name)
         del self.data[record.name.value]
 
     def to_dict(self) -> dict[str, dict[str, str]]:
@@ -88,8 +119,38 @@ class AddressBook(UserDict[str, Record]):
             return d.replace(year=year, month=3, day=1)
 
     @staticmethod
+    def print_unpack_book_error() -> None:
+        console.print(
+            format_warn(
+                "Файл адресної книги пошкоджено або недоступний. "
+                "Завантажено порожню книгу."
+            )
+        )
+
+    @staticmethod
     def from_dict(data: dict[str, Any]) -> "AddressBook":
         book = AddressBook()
+        if not isinstance(data, dict):
+            AddressBook.print_unpack_book_error()
+            return book
+
+        skipped = 0
         for record_data in data.values():
-            book.add_record(Record.from_dict(record_data))
+            if not isinstance(record_data, dict):
+                skipped += 1
+                continue
+
+            try:
+                book.add_record(Record.from_dict(record_data))
+            except Exception:
+                skipped += 1
+
+        if skipped:
+            console.print(
+                format_warn(
+                    "Під час завантаження книги було пропущено некоректних "
+                    f"записів: {skipped}.\n"
+                    "Некоректні аписи будуть видалені з книги."
+                )
+            )
         return book

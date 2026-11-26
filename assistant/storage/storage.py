@@ -5,13 +5,12 @@ from tempfile import NamedTemporaryFile
 from typing import Any
 
 from assistant.contacts.address_book import AddressBook
-from assistant.core.exceptions import ExtendedValueError
+from assistant.core.exceptions import AssistantError
 from assistant.notes.notebook import Notebook
 
 STORAGE_DIR = Path.home() / "assistant_storage"
 CONTACTS_FILE = STORAGE_DIR / "address_book.json"
-NOTES_FILE = Path.home() / ".personal_assistant" / "notebook.json"
-LEGACY_CONTACTS_FILE = Path(".assistant_storage") / "address_book.json"
+NOTES_FILE = STORAGE_DIR / "notebook.json"
 
 
 def save_address_book(
@@ -22,10 +21,11 @@ def save_address_book(
 
 def load_address_book(file_path: Path = CONTACTS_FILE) -> AddressBook:
     try:
-        if file_path == CONTACTS_FILE and not file_path.exists():
-            file_path = LEGACY_CONTACTS_FILE
         return AddressBook.from_dict(load_json(file_path))
-    except (OSError, ValueError, ExtendedValueError):
+    except FileNotFoundError:
+        return AddressBook()
+    except (OSError, ValueError, KeyError, TypeError, AssistantError):
+        AddressBook.print_unpack_book_error()
         return AddressBook()
 
 
@@ -40,8 +40,10 @@ def load_notebook(file_path: Path = NOTES_FILE) -> Notebook:
         return Notebook.from_dict(load_json(file_path))
     except FileNotFoundError:
         return Notebook()
-    except (ValueError, OSError) as error:
-        raise ExtendedValueError(
+    except (
+        ValueError, OSError, KeyError, TypeError, AssistantError
+    ) as error:
+        raise AssistantError(
             "Не вдалося прочитати файл нотаток."
         ) from error
 
