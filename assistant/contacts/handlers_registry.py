@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from typing import Any
 
 from rich.panel import Panel
@@ -6,7 +7,11 @@ from rich.table import Table
 from assistant.contacts.address_book import AddressBook
 from assistant.contacts.record import Record
 from assistant.core.command import Command, MutationCommand
-from assistant.core.exceptions import AlreadyExistsError, MissingContactError
+from assistant.core.exceptions import (
+    AlreadyExistsError,
+    MissingContactError,
+    UsageError,
+)
 from assistant.core.fields import Address, Birthday, Email, Phone
 from assistant.core.input_error_decorator import input_error
 from assistant.ui.views import (
@@ -77,15 +82,29 @@ def delete_contact(book: AddressBook, args: list[str]) -> Panel:
 
 
 @input_error
-def find_contact(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+def find_contact(book: AddressBook, args: list[str]) -> Table | Panel:
+    query = " ".join(args).strip()
+    if not query:
+        raise UsageError("Використання: find-contact <запит...>")
+
+    matches = book.search(query)
+    if not matches:
+        return format_info(
+            f"Контактів за запитом «{query}» не знайдено."
+        )
+    return render_contacts_table(matches, "Результати пошуку")
 
 
 def show_all_contacts(book: AddressBook, *_: Any) -> Table | Panel:
-    title = "Список усіх контактів"
+    return render_contacts_table(book.values(), "Список усіх контактів")
+
+
+def render_contacts_table(
+    records: Iterable[Record], title: str
+) -> Table | Panel:
     headers = ["Імʼя", "Дата народження", "Телефон(и)", "Адреса", "Пошта"]
     rows = []
-    for record in book.values():
+    for record in records:
         record_dict = record.to_dict()
         rows.append(
             [
@@ -251,7 +270,10 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
         "find-contact": Command(
             handler=find_contact,
             usage="find-contact <запит...>",
-            description="Знайти контакти за іменем, телефоном або email",
+            description=(
+                "Знайти контакти за іменем, телефоном, email, "
+                "адресою або датою народження"
+            ),
             category="Contacts",
             example="find-contact Anna",
         ),
