@@ -23,34 +23,41 @@ class UsageError(AssistantError):
 # ===================== Validation Errors =====================
 
 
-class NameValidationError(ValidationError):
-    def __init__(self):
-        super().__init__("Ім'я не може бути порожнім.")
+class FieldValidationError(ValidationError):
+    default_message = "Некоректне значення '{value}'."
+
+    def __init__(self, value: str = "", message: str | None = None):
+        self.value = value
+        super().__init__(message or self.default_message.format(value=value))
 
 
-class PhoneValidationError(ValidationError):
-    def __init__(self, phone=""):
-        super().__init__(f"Номер телефону '{phone}' має містити 10 цифр.")
+class NameValidationError(FieldValidationError):
+    default_message = "Ім'я не може бути порожнім."
 
 
-class EmailValidationError(ValidationError):
-    def __init__(self, email=""):
-        super().__init__(
-            f"Адреса електронної пошти: {email} " "має некоректний формат."
-        )
+class PhoneValidationError(FieldValidationError):
+    default_message = (
+        "Номер телефону '{value}' має містити 10 цифр. "
+        "Формат: 0501234567, 050-123-45-67 або +380501234567."
+    )
 
 
-class BirthdayValidationError(ValidationError):
-    def __init__(self, birthday=""):
-        super().__init__(
-            f"Некоректна дата народження '{birthday}'.\n"
-            "Використовуйте формат ДД.ММ.РРРР."
-        )
+class EmailValidationError(FieldValidationError):
+    default_message = (
+        "Email '{value}' має некоректний формат. "
+        "Формат: name@example.com (до 254 символів)."
+    )
 
 
-class AddressValidationError(ValidationError):
-    def __init__(self):
-        super().__init__("Адреса не може бути порожньою.")
+class BirthdayValidationError(FieldValidationError):
+    default_message = (
+        "Некоректна дата народження '{value}'. "
+        "Використовуйте формат ДД.ММ.РРРР."
+    )
+
+
+class AddressValidationError(FieldValidationError):
+    default_message = "Адреса не може бути порожньою."
 
 
 class NoteValidationError(ValidationError):
@@ -87,7 +94,7 @@ class PhoneNotFoundError(NotFoundError):
 class PhoneExistsError(AlreadyExistsError):
     def __init__(self, phone, name):
         super().__init__(
-            f"Номер телефону '{phone}' " f"вже існує для контакту '{name}'"
+            f"Номер телефону '{phone}' вже існує для контакту '{name}'"
         )
 
 

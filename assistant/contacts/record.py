@@ -1,9 +1,11 @@
+from contextlib import suppress
 from typing import Any
 
 from assistant.core.exceptions import (
     NotFoundError,
     PhoneExistsError,
     PhoneNotFoundError,
+    ValidationError,
 )
 from assistant.core.fields import Address, Birthday, Email, Name, Phone
 
@@ -19,7 +21,7 @@ class Record:
     def add_phone(self, phone: str) -> None:
         new_phone = Phone(phone)
         if self.find_phone(new_phone.value):
-            raise PhoneExistsError(phone, self.name.value)
+            raise PhoneExistsError(new_phone.value, self.name.value)
         self.phones.append(new_phone)
 
     def add_email(self, value: str) -> None:
@@ -35,25 +37,20 @@ class Record:
             raise NotFoundError(f"У контакту {self.name.value} немає email.")
         self.email = None
 
-    def remove_phone(self, phone: str) -> None:
-        phone_to_remove = self.find_phone(phone)
-        if phone_to_remove is None:
-            raise PhoneNotFoundError(phone)
-        self.phones.remove(phone_to_remove)
-
     def edit_phone(self, old_phone: str, new_phone: str) -> None:
         phone_to_edit = self.find_phone(old_phone)
         if phone_to_edit is None:
             raise PhoneNotFoundError(old_phone)
         replacement = Phone(new_phone)
-        if new_phone != old_phone and self.find_phone(new_phone):
-            raise PhoneExistsError(new_phone, self.name.value)
+        if replacement != phone_to_edit and self.find_phone(replacement.value):
+            raise PhoneExistsError(replacement.value, self.name.value)
         index = self.phones.index(phone_to_edit)
         self.phones[index] = replacement
 
     def find_phone(self, number: str) -> Phone | None:
+        target = Phone.normalize(number)
         return next(
-            (phone for phone in self.phones if phone.value == number),
+            (phone for phone in self.phones if phone.value == target),
             None,
         )
 
@@ -98,16 +95,17 @@ class Record:
         record = Record(data["name"])
         for phone in data.get("phones", []):
             if record.find_phone(phone) is None:
-                record.add_phone(phone)
-        birthday_str = data.get("birthday")
-        if birthday_str:
-            record.add_birthday(birthday_str)
-        email_str = data.get("email")
-        if email_str:
-            record.add_email(email_str)
-        address_str = data.get("address")
-        if address_str:
-            record.add_address(address_str)
+                with suppress(ValidationError):
+                    record.add_phone(phone)
+        setters = (
+            (record.add_birthday, data.get("birthday")),
+            (record.add_email, data.get("email")),
+            (record.add_address, data.get("address")),
+        )
+        for setter, value in setters:
+            if value:
+                with suppress(ValidationError):
+                    setter(value)
         return record
 
     def __str__(self) -> str:
