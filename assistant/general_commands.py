@@ -1,13 +1,12 @@
 import shlex
-from collections.abc import Callable
 from functools import partial
 from typing import Any
 
 from rich.panel import Panel
 
-from assistant.contacts.address_book import AddressBook, ExtendedValueError
+from assistant.contacts.address_book import ExtendedValueError
+from assistant.context.context import AssistantContext
 from assistant.core.command import Command
-from assistant.storage.storage import save_address_book
 from assistant.ui.views import format_command_card, format_help, format_info
 
 
@@ -39,32 +38,32 @@ def hello_handler(*_: Any) -> Panel:
 
 
 def help_handler(
-    get_commands: Callable[[], dict[str, Command]],
-    book: AddressBook,
+    commands: dict[str, Command],
     args: list[str],
 ) -> Any:
-    commands = get_commands()
     if args:
         return format_command_card(commands, args[0])
     return format_help(commands)
 
 
-def exit_handler(book: AddressBook, *_: Any) -> Panel:
-    save_address_book(book)
+def exit_handler(ctx: AssistantContext, *_: Any) -> Panel:
+    ctx.save_all()
     return format_info("Good bye!")
 
 
-exit_command = Command(
-    handler=exit_handler,
-    usage="exit | close",
-    description="Зберігає дані та завершує роботу асистента",
-    category="General",
-    example = "exit",
-)
+def exit_command(ctx: AssistantContext):
+    return Command(
+        handler=partial(exit_handler, ctx),
+        usage="exit | close",
+        description="Зберігає дані та завершує роботу асистента",
+        category="General",
+        example="exit",
+    )
 
 
 def build_general_commands(
-    get_commands: Callable[[], dict[str, Command]],
+    ctx: AssistantContext,
+    commands: dict[str, Command],
 ) -> dict[str, Command]:
     return {
         "hello": Command(
@@ -75,12 +74,12 @@ def build_general_commands(
             example="hello",
         ),
         "help": Command(
-            handler=partial(help_handler, get_commands),
+            handler=partial(help_handler, commands),
             usage="help",
             description="Показує список усіх доступних команд",
             category="General",
             example="help | help <command>",
         ),
-        "close": exit_command,
-        "exit": exit_command,
+        "close": exit_command(ctx),
+        "exit": exit_command(ctx),
     }

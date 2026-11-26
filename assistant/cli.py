@@ -1,8 +1,8 @@
 from prompt_toolkit import PromptSession
 from rich.console import Console
 
-from assistant.contacts.address_book import AddressBook
 from assistant.contacts.handlers_registry import build_contacts_commands
+from assistant.context.context import AssistantContext
 from assistant.core.command import Command, CommandResult
 from assistant.general_commands import (
     ExtendedValueError,
@@ -12,7 +12,6 @@ from assistant.general_commands import (
 )
 from assistant.storage.storage import (
     load_address_book,
-    save_address_book,
 )
 from assistant.ui.completer import init_assistant_completer
 from assistant.ui.views import format_error, format_info
@@ -20,28 +19,8 @@ from assistant.ui.views import format_error, format_info
 console = Console()
 
 
-def main():
-    book = load_address_book()
-    commands: dict[str, Command] = {}
-    commands.update(build_contacts_commands(book))
-
-    # TODO(notes): register the Notes commands below, e.g.
-    # commands.update(build_notes_commands(book))
-    # They must have category="Notes" to appear in `help`.
-    commands.update(build_general_commands(lambda: commands))
-
-    session = init_assistant_completer(commands)
-
-    console.print(format_info("Welcome to the assistant bot!"))
-
-    try:
-        run_loop(book, commands, session)
-    finally:
-        save_address_book(book)
-
-
 def run_loop(
-    book: AddressBook,
+    ctx: AssistantContext,
     commands: dict[str, Command],
     session: PromptSession,
 ) -> None:
@@ -52,7 +31,7 @@ def run_loop(
         except KeyboardInterrupt:
             continue
         except EOFError:
-            console.print(exit_handler(book))
+            console.print(exit_handler(ctx))
             break
         except ExtendedValueError as err:
             console.print(format_error(str(err)))
@@ -64,10 +43,15 @@ def run_loop(
         command = commands.get(command_key)
 
         if command:
-            result = command.handler(book, args)
+            try:
+                result = command.handler(args)
+            except Exception as err:
+                console.print(format_error(f"Непередбачена помилка: {err}"))
+                continue
+
             if isinstance(result, CommandResult):
                 if command.mutates and result.changed:
-                    save_address_book(book)
+                    ctx.save_all()
                 console.print(result.output)
             else:
                 console.print(result)
@@ -75,6 +59,28 @@ def run_loop(
                 break
         else:
             console.print(format_error("Invalid command."))
+
+
+def main() -> None:
+    address_book = load_address_book()
+    # TODO: provide a real notebook value when ready
+    assistant_ctx = AssistantContext(address_book=address_book, notebook=None)
+
+    commands: dict[str, Command] = {}
+    commands.update(build_contacts_commands(address_book))
+    # TODO(notes): register the Notes commands below, e.g.
+    # commands.update(build_notes_commands(book))
+    # They must have category="Notes" to appear in `help`.
+    commands.update(build_general_commands(assistant_ctx, commands))
+
+    session = init_assistant_completer(commands)
+
+    console.print(format_info("Welcome to the assistant bot!"))
+
+    try:
+        run_loop(assistant_ctx, commands, session)
+    finally:
+        assistant_ctx.save_all()
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 """Core package containing exceptions and base field types."""
 
 from assistant.core.command import Command
+from assistant.core.command_result import CommandResult
 from assistant.core.exceptions import (
     AlreadyExistsError,
     BirthdayError,
@@ -21,4 +22,5 @@ __all__ = [
     "Phone",
     "input_error",
     "Command",
+    "CommandResult",
 ]

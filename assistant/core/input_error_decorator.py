@@ -2,9 +2,9 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from assistant.core.command import CommandResult
-from assistant.core.exceptions import (
+from assistant.core import (
     BirthdayError,
+    CommandResult,
     ExtendedValueError,
     MissingContactError,
 )
