@@ -183,17 +183,36 @@ def delete_birthday(book: AddressBook, args: list[str]) -> Panel:
     return format_success("Дату народження видалено")
 
 
+@input_error
 def upcoming_birthdays(
     book: AddressBook, args: list[str] | None = None
 ) -> Table | Panel:
-    title = "Список найближчих днів народжень"
-    headers = ["Імʼя", "Дата народження"]
+    days = 7
+    if args:
+        try:
+            days = int(args[0]) if len(args) == 1 else 0
+        except ValueError:
+            days = 0
+
+    weekdays = (
+        "Понеділок", "Вівторок", "Середа", "Четвер",
+        "Пʼятниця", "Субота", "Неділя",
+    )
+    title = "Найближчі дні народження"
+    headers = [
+        "Імʼя", "ДН", "День тижня", "Через (днів)",
+        "Виповнюється", "Дата привітання",
+    ]
     rows = [
         [
-            upcoming_bd.get("name", "-"),
-            upcoming_bd.get("congratulation_date", "-"),
+            item.name,
+            item.birthday.strftime(Birthday.DATE_FORMAT),
+            weekdays[item.birthday.weekday()],
+            str(item.days_left),
+            str(item.age),
+            item.congratulation_date.strftime(Birthday.DATE_FORMAT),
         ]
-        for upcoming_bd in book.get_upcoming_birthdays()
+        for item in book.get_upcoming_birthdays(days)
     ]
 
     return format_table(title, headers, rows)
@@ -393,9 +412,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
         "upcoming-birthdays": Command(
             handler=partial(upcoming_birthdays, book),
             usage="upcoming-birthdays [дні=7]",
-            description=(
-                "Показати контакти з днями народження у найближчі дні"
-            ),
+            description="Показати дні народження в межах заданого періоду",
             category="Contacts",
             example="upcoming-birthdays 14",
         ),
