@@ -30,4 +30,5 @@ def load_address_book(file_path: Path = CONTACTS_FILE) -> AddressBook:
             data = json.load(f)
             return AddressBook.from_dict(data)
     except (json.JSONDecodeError, OSError):
+        AddressBook.print_unpack_book_error()
         return AddressBook()

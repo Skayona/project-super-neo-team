@@ -2,28 +2,34 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from assistant.core.exceptions import (
-    BirthdayError,
-    ExtendedValueError,
-    MissingContactError,
-)
+from assistant.core.command_result import CommandResult
+from assistant.core.exceptions import AssistantError, UsageError
 from assistant.ui.views import format_error
+
+
+def failed(message: str) -> CommandResult:
+    return CommandResult(format_error(message), changed=False)
 
 
 def input_error(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
     def inner(*args: Any, **kwargs: Any) -> Any:
         try:
-            return func(*args, **kwargs)
-        except ValueError:
-            return format_error("Not all data is provided.")
+            result = func(*args, **kwargs)
+        except UsageError:
+            raise
+        except AssistantError as e:
+            return failed(e.message)
         except IndexError:
-            return format_error("Enter user name.")
-        except KeyError:
-            return format_error("Contact not found.")
-        except NotImplementedError:
-            return format_error("Under construction.")
-        except (ExtendedValueError, MissingContactError, BirthdayError) as e:
-            return format_error(e.message)
+            raise UsageError("Недостатньо аргументів.") from None
+        except ValueError as e:
+            if "not enough values to unpack" in str(e):
+                raise UsageError("Недостатньо аргументів.") from None
+            raise
+
+        if isinstance(result, CommandResult):
+            return result
+
+        return CommandResult(result, changed=True)
 
     return inner

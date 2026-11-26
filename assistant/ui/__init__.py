@@ -8,6 +8,7 @@ from assistant.ui.views import (
     format_info,
     format_success,
     format_table,
+    format_warn,
 )
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "format_card",
     "format_table",
     "format_help",
+    "format_warn",
 ]

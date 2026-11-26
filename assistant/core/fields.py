@@ -1,86 +1,129 @@
 import re
-from dataclasses import dataclass
-from datetime import datetime
+from abc import ABC, abstractmethod
+from datetime import date, datetime
 
-from assistant.core.exceptions import BirthdayError, ExtendedValueError
+from assistant.core.exceptions import (
+    AddressValidationError,
+    BirthdayValidationError,
+    EmailValidationError,
+    NameValidationError,
+    PhoneValidationError,
+)
 
 
-@dataclass
-class Field:
-    value: str
+class Field(ABC):
+    def __init__(self, value: str):
+        normalized = self.normalize(value)
+        self.validate(normalized)
+        self.value = normalized
+
+    @classmethod
+    def normalize(cls, value: str) -> str:
+        return value
+
+    @classmethod
+    @abstractmethod
+    def validate(cls, value: str) -> None:
+        raise NotImplementedError
 
     def __str__(self) -> str:
         return str(self.value)
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Field):
+            return NotImplemented
+        return type(self) is type(other) and self.value == other.value
 
-@dataclass
+    def __hash__(self) -> int:
+        return hash((type(self), self.value))
+
+
 class Name(Field):
-    def __post_init__(self):
-        if not self.value or not self.value.strip():
-            raise ExtendedValueError(
-                "Name cannot be empty. Please provide a valid name"
+    MAX_LENGTH = 50
+
+    @classmethod
+    def normalize(cls, value: str) -> str:
+        return value.strip()
+
+    @classmethod
+    def validate(cls, value: str) -> None:
+        if not value:
+            raise NameValidationError(value)
+        if len(value) > cls.MAX_LENGTH:
+            raise NameValidationError(
+                value, f"Ім'я задовге: максимум {cls.MAX_LENGTH} символів."
             )
 
 
 class Phone(Field):
-    def __init__(self, value: str):
-        self.__validate_phone(value)
-        super().__init__(value)
+    _SEPARATORS = re.compile(r"[\s\-()]")
 
-    def __validate_phone(self, value: str):
-        if not self.__is_phone_valid(value):
-            raise ExtendedValueError(
-                f"Phone number {value} is incorrect. "
-                "It should contain 10 numbers"
-            )
+    @classmethod
+    def normalize(cls, value: str) -> str:
+        digits = cls._SEPARATORS.sub("", value)
+        if digits.startswith("+380"):
+            digits = digits[3:]
+        return digits
 
-    @staticmethod
-    def __is_phone_valid(value: str) -> bool:
-        pattern = r"^\d{10}$"
-        match = re.match(pattern, value)
-        return match is not None
+    @classmethod
+    def validate(cls, value: str) -> None:
+        if not re.fullmatch(r"\d{10}", value):
+            raise PhoneValidationError(value)
 
 
 class Email(Field):
-    def __init__(self, value: str):
-        self.__validate_email(value)
-        super().__init__(value)
+    MAX_LENGTH = 254
+    _PATTERN = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 
-    def __validate_email(self, value: str):
-        if not self.__is_email_valid(value):
-            raise ExtendedValueError(f"Email {value} is incorrect.")
+    @classmethod
+    def normalize(cls, value: str) -> str:
+        return value.strip().lower()
 
-    @staticmethod
-    def __is_email_valid(value: str) -> bool:
-        pattern = r"^[\w.+-]+@[\w-]+\.[\w.-]+$"
-        match = re.match(pattern, value)
-        return match is not None
+    @classmethod
+    def validate(cls, value: str) -> None:
+        if len(value) > cls.MAX_LENGTH or not cls._PATTERN.fullmatch(value):
+            raise EmailValidationError(value)
 
 
 class Birthday(Field):
-    __date_str_format = "%d.%m.%Y"
+    DATE_FORMAT = "%d.%m.%Y"
+    MIN_YEAR = 1900
+    _PATTERN = re.compile(r"\d{2}\.\d{2}\.\d{4}")
 
-    def __init__(self, value: str):
-        self.__validate_date(value)
-        super().__init__(value)
-
-    def __validate_date(self, value: str):
+    @classmethod
+    def validate(cls, value: str) -> None:
+        if not cls._PATTERN.fullmatch(value):
+            raise BirthdayValidationError(value)
         try:
-            datetime.strptime(value, self.__date_str_format)
+            birthday = datetime.strptime(value, cls.DATE_FORMAT).date()
         except ValueError:
-            raise BirthdayError
-        except TypeError:
-            raise BirthdayError(
-                "Provided value is not a date. "
-                "Please provide a date in DD.MM.YYYY format."
+            raise BirthdayValidationError(value) from None
+        if birthday.year < cls.MIN_YEAR:
+            raise BirthdayValidationError(
+                value,
+                f"Некоректна дата народження '{value}'. "
+                f"Рік має бути не раніше {cls.MIN_YEAR}.",
+            )
+        if birthday > date.today():
+            raise BirthdayValidationError(
+                value,
+                f"Некоректна дата народження '{value}'. "
+                "Дата не може бути в майбутньому.",
             )
 
 
 class Address(Field):
-    def __init__(self, value: str):
-        self.__validate_address(value)
-        super().__init__(value)
+    MAX_LENGTH = 200
 
-    def __validate_address(self, value: str):
+    @classmethod
+    def normalize(cls, value: str) -> str:
+        return " ".join(value.split())
+
+    @classmethod
+    def validate(cls, value: str) -> None:
         if not value:
-            raise ExtendedValueError("Address is missing.")
+            raise AddressValidationError(value)
+        if len(value) > cls.MAX_LENGTH:
+            raise AddressValidationError(
+                value, f"Адреса задовга: максимум {cls.MAX_LENGTH} символів."
+            )

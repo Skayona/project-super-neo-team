@@ -1,37 +1,17 @@
 from collections import Counter, UserDict
-from dataclasses import dataclass, replace
+from datetime import datetime
 from typing import Any
 
-from assistant.core.exceptions import ExtendedValueError, NoteExistsError
-
-
-@dataclass(frozen=True)
-class Note:
-    title: str
-    text: str
-    tags: tuple[str, ...] = ()
-
-    def __post_init__(self) -> None:
-        title = self.title.strip()
-        if not title:
-            raise ExtendedValueError(
-                "Заголовок нотатки не може бути порожнім."
-            )
-        if not self.text.strip():
-            raise ExtendedValueError("Текст нотатки не може бути порожнім.")
-
-        tags = dict.fromkeys(
-            tag.strip().casefold() for tag in self.tags if tag.strip()
-        )
-        object.__setattr__(self, "title", title)
-        object.__setattr__(self, "tags", tuple(tags))
+from assistant.core.exceptions import NoteExistsError, NoteNotFoundError
+from assistant.notes.fields import NoteTag
+from assistant.notes.note import Note
 
 
 class Notebook(UserDict[str, Note]):
     def add_note(self, note: Note) -> None:
-        key = note.title.casefold()
+        key = note.title.value.casefold()
         if key in self:
-            raise NoteExistsError(f"Нотатка «{note.title}» вже існує.")
+            raise NoteExistsError(note.title.value)
         self[key] = note
 
     def find_note(self, title: str) -> Note | None:
@@ -39,13 +19,19 @@ class Notebook(UserDict[str, Note]):
 
     def delete_note(self, title: str) -> None:
         note = self._require_note(title)
-        del self[note.title.casefold()]
+        del self[note.title.value.casefold()]
 
     def rename_note(self, title: str, new_title: str) -> Note:
         current = self._require_note(title)
-        updated = replace(current, title=new_title)
-        old_key = current.title.casefold()
-        new_key = updated.title.casefold()
+        updated = Note(
+            new_title,
+            current.content.value,
+            (tag.value for tag in current.tags),
+            created_at=current.created_at,
+            updated_at=datetime.now().replace(microsecond=0),
+        )
+        old_key = current.title.value.casefold()
+        new_key = updated.title.value.casefold()
         if new_key != old_key:
             self.add_note(updated)
             del self[old_key]
@@ -60,42 +46,53 @@ class Notebook(UserDict[str, Note]):
         tags: tuple[str, ...] | None = None,
     ) -> Note:
         current = self._require_note(title)
-        updated = replace(
-            current,
-            text=current.text if text is None else text,
-            tags=current.tags if tags is None else tags,
+        updated = Note(
+            current.title.value,
+            current.content.value if text is None else text,
+            (tag.value for tag in current.tags) if tags is None else tags,
+            created_at=current.created_at,
+            updated_at=datetime.now().replace(microsecond=0),
         )
-        self[current.title.casefold()] = updated
+        self[current.title.value.casefold()] = updated
         return updated
 
     def _require_note(self, title: str) -> Note:
         note = self.find_note(title)
         if note is None:
-            raise ExtendedValueError(f"Нотатку «{title}» не знайдено.")
+            raise NoteNotFoundError(title)
         return note
 
     def search(self, query: str) -> list[Note]:
         query = query.strip().casefold()
         return [
-            note for note in self.values()
+            note
+            for note in self.values()
             if any(
                 query in field.casefold()
-                for field in (note.title, note.text, *note.tags)
+                for field in (
+                    note.title.value,
+                    note.content.value,
+                    *self._tags(note),
+                )
             )
         ]
 
     def find_by_tags(self, *tags: str, match_all: bool = False) -> list[Note]:
-        wanted = {tag.strip().casefold() for tag in tags if tag.strip()}
+        wanted = {NoteTag(tag).value for tag in tags}
         if not wanted:
             return []
         if match_all:
-            return [note for note in self.values() if wanted <= set(note.tags)]
+            return [
+                note for note in self.values() if wanted <= self._tags(note)
+            ]
         return [
-            note for note in self.values() if wanted.intersection(note.tags)
+            note
+            for note in self.values()
+            if wanted.intersection(self._tags(note))
         ]
 
     def all_tags(self) -> dict[str, int]:
-        tags = (tag for note in self.values() for tag in note.tags)
+        tags = (tag for note in self.values() for tag in self._tags(note))
         return dict(Counter(tags))
 
     def group_by_tags(self) -> dict[str, list[Note]]:
@@ -104,7 +101,7 @@ class Notebook(UserDict[str, Note]):
         }
         untagged = []
         for note in self.values():
-            for tag in note.tags:
+            for tag in self._tags(note):
                 groups[tag].append(note)
             if not note.tags:
                 untagged.append(note)
@@ -117,36 +114,22 @@ class Notebook(UserDict[str, Note]):
             self.values(),
             key=lambda note: (
                 not note.tags,
-                min(note.tags, default=""),
+                min(self._tags(note), default=""),
                 len(note.tags),
-                note.title.casefold(),
+                note.title.value.casefold(),
             ),
         )
 
-    def to_dict(self) -> dict[str, dict[str, str | list[str]]]:
-        return {
-            key: {
-                "title": note.title,
-                "text": note.text,
-                "tags": list(note.tags),
-            }
-            for key, note in self.items()
-        }
+    @staticmethod
+    def _tags(note: Note) -> set[str]:
+        return {tag.value for tag in note.tags}
+
+    def to_dict(self) -> dict[str, dict[str, Any]]:
+        return {key: note.to_dict() for key, note in self.items()}
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Notebook":
         notebook = cls()
         for item in data.values():
-            if not isinstance(item, dict):
-                raise ExtendedValueError("Некоректний формат нотатки.")
-            title, text = item.get("title"), item.get("text")
-            tags = item.get("tags", [])
-            if (
-                not isinstance(title, str)
-                or not isinstance(text, str)
-                or not isinstance(tags, list)
-                or not all(isinstance(tag, str) for tag in tags)
-            ):
-                raise ExtendedValueError("Некоректний формат нотатки.")
-            notebook.add_note(Note(title, text, tuple(tags)))
+            notebook.add_note(Note.from_dict(item))
         return notebook
