@@ -13,3 +13,15 @@ class Command:
     category: Category
     arg_completer: ArgCompleter | None = None
     example: str = ""
+    mutates: bool = False
+
+
+@dataclass(frozen=True)
+class MutationCommand(Command):
+    mutates: bool = True
+
+
+@dataclass(frozen=True)
+class CommandResult:
+    output: Any
+    changed: bool = False

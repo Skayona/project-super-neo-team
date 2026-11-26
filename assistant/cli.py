@@ -1,7 +1,9 @@
+from prompt_toolkit import PromptSession
 from rich.console import Console
 
+from assistant.contacts.address_book import AddressBook
 from assistant.contacts.handlers_registry import build_contacts_commands
-from assistant.core.command import Command
+from assistant.core.command import Command, CommandResult
 from assistant.general_commands import (
     ExtendedValueError,
     build_general_commands,
@@ -10,6 +12,7 @@ from assistant.general_commands import (
 )
 from assistant.storage.storage import (
     load_address_book,
+    save_address_book,
 )
 from assistant.ui.completer import init_assistant_completer
 from assistant.ui.views import format_error, format_info
@@ -31,6 +34,17 @@ def main():
 
     console.print(format_info("Welcome to the assistant bot!"))
 
+    try:
+        run_loop(book, commands, session)
+    finally:
+        save_address_book(book)
+
+
+def run_loop(
+    book: AddressBook,
+    commands: dict[str, Command],
+    session: PromptSession,
+) -> None:
     while True:
         try:
             user_input = session.prompt("Enter a command: ")
@@ -50,7 +64,13 @@ def main():
         command = commands.get(command_key)
 
         if command:
-            console.print(command.handler(book, args))
+            result = command.handler(book, args)
+            if isinstance(result, CommandResult):
+                if command.mutates and result.changed:
+                    save_address_book(book)
+                console.print(result.output)
+            else:
+                console.print(result)
             if command_key in ("close", "exit"):
                 break
         else:
