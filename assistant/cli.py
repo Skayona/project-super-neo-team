@@ -10,9 +10,6 @@ from assistant.general_commands import (
     exit_handler,
     parse_input,
 )
-from assistant.storage.storage import (
-    load_address_book,
-)
 from assistant.ui.completer import init_assistant_completer
 from assistant.ui.views import format_error, format_info
 
@@ -62,14 +59,13 @@ def run_loop(
 
 
 def main() -> None:
-    address_book = load_address_book()
     # TODO: provide a real notebook value when ready
-    assistant_ctx = AssistantContext(address_book=address_book, notebook=None)
+    assistant_ctx = AssistantContext.load()
 
     commands: dict[str, Command] = {}
-    commands.update(build_contacts_commands(address_book))
+    commands.update(build_contacts_commands(assistant_ctx.address_book))
     # TODO(notes): register the Notes commands below, e.g.
-    # commands.update(build_notes_commands(book))
+    # commands.update(build_notes_commands(assistant_ctx.notebook))
     # They must have category="Notes" to appear in `help`.
     commands.update(build_general_commands(assistant_ctx, commands))
 
