@@ -34,7 +34,8 @@ class Field(ABC):
             return NotImplemented
         return type(self) is type(other) and self.value == other.value
 
-    __hash__ = None  # type: ignore[assignment]
+    def __hash__(self) -> int:
+        return hash((type(self), self.value))
 
 
 class Name(Field):
