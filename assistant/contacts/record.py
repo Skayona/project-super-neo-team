@@ -1,6 +1,10 @@
 from typing import Any
 
-from assistant.core.exceptions import PhoneExistsError, PhoneNotFoundError
+from assistant.core.exceptions import (
+    NotFoundError,
+    PhoneExistsError,
+    PhoneNotFoundError,
+)
 from assistant.core.fields import Address, Birthday, Email, Name, Phone
 
 
@@ -20,6 +24,16 @@ class Record:
 
     def add_email(self, value: str) -> None:
         self.email = Email(value)
+
+    def edit_email(self, value: str) -> None:
+        if self.email is None:
+            raise NotFoundError(f"У контакту {self.name.value} немає email.")
+        self.email = Email(value)
+
+    def delete_email(self) -> None:
+        if self.email is None:
+            raise NotFoundError(f"У контакту {self.name.value} немає email.")
+        self.email = None
 
     def remove_phone(self, phone: str) -> None:
         phone_to_remove = self.find_phone(phone)
@@ -42,6 +56,7 @@ class Record:
             (phone for phone in self.phones if phone.value == number),
             None,
         )
+
     def delete_phone(self, phone: str) -> None:
         phone_to_delete = self.find_phone(phone)
         if phone_to_delete:
@@ -54,6 +69,16 @@ class Record:
 
     def add_address(self, value: str) -> None:
         self.address = Address(value)
+
+    def edit_address(self, value: str) -> None:
+        if self.address is None:
+            raise NotFoundError(f"У контакту {self.name.value} немає адреси.")
+        self.address = Address(value)
+
+    def delete_address(self) -> None:
+        if self.address is None:
+            raise NotFoundError(f"У контакту {self.name.value} немає адреси.")
+        self.address = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
