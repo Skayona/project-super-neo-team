@@ -1,5 +1,6 @@
 """Core package containing exceptions and base field types."""
 
+from assistant.core.base_field import BaseField
 from assistant.core.command import Command
 from assistant.core.command_result import CommandResult
 from assistant.core.exceptions import (
@@ -22,14 +23,6 @@ from assistant.core.exceptions import (
     TagValidationError,
     UsageError,
     ValidationError,
-)
-from assistant.core.fields import (
-    Address,
-    Birthday,
-    Email,
-    Field,
-    Name,
-    Phone,
 )
 from assistant.core.input_error_decorator import input_error
 
@@ -55,11 +48,6 @@ __all__ = [
     "ContactExistsError",
     "NoteExistsError",
     "UsageError",
-    "Field",
-    "Name",
-    "Phone",
-    "Email",
-    "Birthday",
-    "Address",
     "input_error",
+    "BaseField",
 ]
