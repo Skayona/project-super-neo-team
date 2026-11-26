@@ -7,6 +7,7 @@ from assistant.context.context import AssistantContext
 from assistant.core.command import Command
 from assistant.core.command_result import CommandResult
 from assistant.core.exceptions import AssistantError, UsageError
+from assistant.core.suggest import keyword_match, similar_cmd
 from assistant.general_commands import (
     build_general_commands,
     exit_handler,
@@ -45,8 +46,49 @@ def run_loop(
         command = commands.get(command_key)
 
         if command is None:
-            console.print(format_error("Невідома команда."))
-            continue
+            message = f"Не вдалося розпізнати команду: '{user_input}'."
+            similar = similar_cmd(command_key, commands.keys())
+            typo_matches = bool(similar)
+
+            if not similar:
+                similar = keyword_match(user_input, commands.keys())
+
+            if similar:
+                usages = "\n".join(
+                    [
+                        commands[item].usage
+                        for item in similar
+                        if item in commands
+                    ]
+                )
+                message += f"\nМожливо, ви мали на увазі:\n{usages}\n"
+
+            message += "\nВведіть 'help', щоб побачити всі команди."
+            console.print(format_error(message))
+
+            # Optional — Execute suggested command
+            if not typo_matches:
+                continue
+
+            suggested_key = similar[0]
+
+            try:
+                confirmation = (
+                    session.prompt(
+                        f"Виконати {suggested_key} "
+                        "з тими ж аргументами? (y/n): "
+                    )
+                    .strip()
+                    .lower()
+                )
+            except (KeyboardInterrupt, EOFError):
+                continue
+
+            if confirmation != "y":
+                continue
+
+            command_key = suggested_key
+            command = commands[command_key]
 
         try:
             result = command.handler(args)
@@ -61,16 +103,13 @@ def run_loop(
         except UsageError as err:
             console.print(
                 format_error(
-                    f"{err.message} "
-                    f"Використання: {escape(command.usage)}"
+                    f"{err.message} Використання: {escape(command.usage)}"
                 )
             )
         except AssistantError as err:
             console.print(format_error(err.message))
         except Exception as err:
-            console.print(
-                format_error(f"Непередбачена помилка: {err}")
-            )
+            console.print(format_error(f"Непередбачена помилка: {err}"))
 
         if command_key in ("close", "exit"):
             break
