@@ -31,9 +31,6 @@ def input_error(func: Callable[..., Any]) -> Callable[..., Any]:
             if "not enough values to unpack" in str(e):
                 raise UsageError("Недостатньо аргументів.") from None
             raise
-        except NotImplementedError:
-            return failed("Функція в розробці.")
-
         if isinstance(result, CommandResult):
             return result
 
