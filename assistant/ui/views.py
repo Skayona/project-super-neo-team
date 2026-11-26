@@ -1,4 +1,3 @@
-from difflib import get_close_matches
 from typing import get_args
 
 from rich import box
@@ -7,6 +6,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from assistant.core.command import Category, Command
+from assistant.core.suggest import similar_cmd
 
 
 def format_info(text: str) -> Panel:
@@ -89,10 +89,13 @@ def format_command_card(commands: dict[str, Command], name: str) -> Panel:
     cmd = commands.get(key)
     if cmd is None:
         message = f"Команду '{name}' не знайдено."
-        similar = get_close_matches(key, commands.keys(), n=3, cutoff=0.5)
+        similar = similar_cmd(key, commands.keys())
+
         if similar:
             message += f"\nМожливо, ви мали на увазі: {', '.join(similar)}"
+
         message += "\nВведіть 'help', щоб побачити всі команди."
+
         return format_error(message)
 
     return format_card(

@@ -42,7 +42,10 @@ class AddressBook(UserDict[str, Record]):
         matches = []
         for record in self.values():
             fields = (
-                record.name, record.email, record.address, record.birthday
+                record.name,
+                record.email,
+                record.address,
+                record.birthday,
             )
             matches_field = any(
                 field is not None and query in field.value.casefold()
