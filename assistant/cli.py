@@ -81,11 +81,15 @@ def main() -> None:
 
     commands: dict[str, Command] = {}
     commands.update(build_contacts_commands(assistant_ctx.address_book))
-    try:
-        notebook = load_notebook()
-    except AssistantError as err:
-        console.print(format_error(err.message))
-        notebook = Notebook()
+    notebook = assistant_ctx.notebook
+    if notebook is None:
+        try:
+            notebook = load_notebook()
+        except AssistantError as err:
+            console.print(format_error(err.message))
+            notebook = Notebook()
+        else:
+            assistant_ctx.notebook = notebook
     commands["sort-notes"] = build_sort_notes_command(notebook)
 
     # TODO(notes): register the Notes commands below, e.g.

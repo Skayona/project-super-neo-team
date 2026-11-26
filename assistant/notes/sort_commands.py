@@ -12,7 +12,7 @@ from assistant.notes.notebook import Notebook
 from assistant.ui.views import format_table
 
 
-def render_notes(title: str, notes: Iterable[Note]) -> Table | Panel:
+def _render_notes(title: str, notes: Iterable[Note]) -> Table | Panel:
     rows = [
         [
             note.title.value,
@@ -31,12 +31,12 @@ def sort_notes(notebook: Notebook, args: list[str]) -> Table | Panel | Group:
     if args and notebook:
         return Group(
             *(
-                render_notes(tag, notes)
+                _render_notes(tag, notes)
                 for tag, notes in notebook.group_by_tags().items()
             )
         )
 
-    return render_notes("Нотатки за тегами", notebook.sort_by_tags())
+    return _render_notes("Нотатки за тегами", notebook.sort_by_tags())
 
 
 def build_sort_notes_command(notebook: Notebook) -> Command:
