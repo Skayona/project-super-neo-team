@@ -2,13 +2,8 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from assistant.core.command import CommandResult
-from assistant.core import (
-    BirthdayError,
-    CommandResult,
-    ExtendedValueError,
-    MissingContactError,
-)
+from assistant.core.command_result import CommandResult
+from assistant.core.exceptions import AssistantError, UsageError
 from assistant.ui.views import format_error
 
 
@@ -31,6 +26,7 @@ def input_error(func: Callable[..., Any]) -> Callable[..., Any]:
             if "not enough values to unpack" in str(e):
                 raise UsageError("Недостатньо аргументів.") from None
             raise
+
         if isinstance(result, CommandResult):
             return result
 
