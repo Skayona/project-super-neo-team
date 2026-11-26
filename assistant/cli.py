@@ -12,6 +12,9 @@ from assistant.general_commands import (
     exit_handler,
     parse_input,
 )
+from assistant.notes.notebook import Notebook
+from assistant.notes.sort_commands import build_sort_notes_command
+from assistant.storage.storage import load_notebook
 from assistant.ui.completer import init_assistant_completer
 from assistant.ui.views import format_error, format_info
 
@@ -78,6 +81,12 @@ def main() -> None:
 
     commands: dict[str, Command] = {}
     commands.update(build_contacts_commands(assistant_ctx.address_book))
+    try:
+        notebook = load_notebook()
+    except AssistantError as err:
+        console.print(format_error(err.message))
+        notebook = Notebook()
+    commands["sort-notes"] = build_sort_notes_command(notebook)
 
     # TODO(notes): register the Notes commands below, e.g.
     # commands.update(build_notes_commands(assistant_ctx.notebook))
