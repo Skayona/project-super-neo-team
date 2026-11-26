@@ -1,4 +1,4 @@
-from assistant.notes.fields import NoteContent, NoteTitle, Tag
+from assistant.notes.fields import NoteContent, NoteTag, NoteTitle
 from assistant.notes.note import Note
 
-__all__ = ["Note", "NoteContent", "NoteTitle", "Tag"]
+__all__ = ["Note", "NoteContent", "NoteTitle", "NoteTag"]

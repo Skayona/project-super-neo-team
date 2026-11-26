@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any
 
 from assistant.core.exceptions import NotFoundError
-from assistant.notes.fields import NoteContent, NoteTitle, Tag
+from assistant.notes.fields import NoteContent, NoteTag, NoteTitle
 
 DISPLAY_FORMAT = "%d.%m.%Y %H:%M"
 
@@ -23,18 +23,18 @@ class Note:
     ):
         self.title = NoteTitle(title)
         self.content = NoteContent(content)
-        self.tags: set[Tag] = {Tag(tag) for tag in tags}
+        self.tags: set[NoteTag] = {NoteTag(tag) for tag in tags}
         self.created_at = created_at or _now()
         self.updated_at = updated_at or self.created_at
 
     def add_tags(self, *tags: str) -> None:
-        new_tags = {Tag(tag) for tag in tags}
+        new_tags = {NoteTag(tag) for tag in tags}
         if not new_tags <= self.tags:
             self.tags |= new_tags
             self._touch()
 
     def remove_tag(self, tag: str) -> None:
-        target = Tag(tag)
+        target = NoteTag(tag)
         if target not in self.tags:
             raise NotFoundError(
                 f"У нотатки «{self.title.value}» немає тегу '{target.value}'."
@@ -80,8 +80,6 @@ class Note:
         if not isinstance(other, Note):
             return NotImplemented
         return self.to_dict() == other.to_dict()
-
-    __hash__ = None
 
     def __str__(self) -> str:
         tags = ", ".join(

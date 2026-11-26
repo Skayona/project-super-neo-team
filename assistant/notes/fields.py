@@ -39,7 +39,7 @@ class NoteContent(Field):
             )
 
 
-class Tag(Field):
+class NoteTag(Field):
     _PATTERN = re.compile(r"[\w-]{1,30}")
 
     @classmethod
