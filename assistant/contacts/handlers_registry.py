@@ -6,6 +6,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from assistant.contacts.address_book import AddressBook
+from assistant.contacts.fields import Address, Birthday, Email, Phone
 from assistant.contacts.record import Record
 from assistant.core.command import Command, MutationCommand
 from assistant.core.exceptions import (
@@ -14,7 +15,6 @@ from assistant.core.exceptions import (
     PhoneExistsError,
     UsageError,
 )
-from assistant.core.fields import Address, Birthday, Email, Phone
 from assistant.core.input_error_decorator import input_error
 from assistant.ui.views import (
     format_card,
@@ -170,7 +170,7 @@ def show_birthday(book: AddressBook, args: list[str]) -> Panel | str:
 def change_birthday(book: AddressBook, args: list[str]) -> Panel:
     name = args[0]
     date = args[1]
-    record = get_record(book,name)
+    record = get_record(book, name)
     record.change_birthday(date)
     return format_success(f"Дату народження контакту {name} змінено")
 
@@ -195,13 +195,22 @@ def upcoming_birthdays(
             days = 0
 
     weekdays = (
-        "Понеділок", "Вівторок", "Середа", "Четвер",
-        "Пʼятниця", "Субота", "Неділя",
+        "Понеділок",
+        "Вівторок",
+        "Середа",
+        "Четвер",
+        "Пʼятниця",
+        "Субота",
+        "Неділя",
     )
     title = "Найближчі дні народження"
     headers = [
-        "Імʼя", "ДН", "День тижня", "Через (днів)",
-        "Виповнюється", "Дата привітання",
+        "Імʼя",
+        "ДН",
+        "День тижня",
+        "Через (днів)",
+        "Виповнюється",
+        "Дата привітання",
     ]
     rows = [
         [

@@ -1,10 +1,10 @@
 import re
 
+from assistant.core.base_field import BaseField
 from assistant.core.exceptions import NoteValidationError, TagValidationError
-from assistant.core.fields import Field
 
 
-class NoteTitle(Field):
+class NoteTitle(BaseField):
     MAX_LENGTH = 80
 
     @classmethod
@@ -23,7 +23,7 @@ class NoteTitle(Field):
             )
 
 
-class NoteContent(Field):
+class NoteContent(BaseField):
     MAX_LENGTH = 5000
 
     @classmethod
@@ -39,7 +39,7 @@ class NoteContent(Field):
             )
 
 
-class NoteTag(Field):
+class NoteTag(BaseField):
     _PATTERN = re.compile(r"[\w-]{1,30}")
 
     @classmethod

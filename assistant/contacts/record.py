@@ -1,6 +1,7 @@
 from contextlib import suppress
 from typing import Any
 
+from assistant.contacts.fields import Address, Birthday, Email, Name, Phone
 from assistant.core.exceptions import (
     BirthdayExistsError,
     BirthdayNotFoundError,
@@ -9,7 +10,6 @@ from assistant.core.exceptions import (
     PhoneNotFoundError,
     ValidationError,
 )
-from assistant.core.fields import Address, Birthday, Email, Name, Phone
 
 
 class Record:

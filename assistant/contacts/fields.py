@@ -1,7 +1,7 @@
 import re
-from abc import ABC, abstractmethod
 from datetime import date, datetime
 
+from assistant.core.base_field import BaseField
 from assistant.core.exceptions import (
     AddressValidationError,
     BirthdayValidationError,
@@ -11,34 +11,7 @@ from assistant.core.exceptions import (
 )
 
 
-class Field(ABC):
-    def __init__(self, value: str):
-        normalized = self.normalize(value)
-        self.validate(normalized)
-        self.value = normalized
-
-    @classmethod
-    def normalize(cls, value: str) -> str:
-        return value
-
-    @classmethod
-    @abstractmethod
-    def validate(cls, value: str) -> None:
-        raise NotImplementedError
-
-    def __str__(self) -> str:
-        return str(self.value)
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Field):
-            return NotImplemented
-        return type(self) is type(other) and self.value == other.value
-
-    def __hash__(self) -> int:
-        return hash((type(self), self.value))
-
-
-class Name(Field):
+class Name(BaseField):
     MAX_LENGTH = 50
 
     @classmethod
@@ -55,7 +28,7 @@ class Name(Field):
             )
 
 
-class Phone(Field):
+class Phone(BaseField):
     _SEPARATORS = re.compile(r"[\s\-()]")
 
     @classmethod
@@ -71,7 +44,7 @@ class Phone(Field):
             raise PhoneValidationError(value)
 
 
-class Email(Field):
+class Email(BaseField):
     MAX_LENGTH = 254
     _PATTERN = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 
@@ -85,7 +58,7 @@ class Email(Field):
             raise EmailValidationError(value)
 
 
-class Birthday(Field):
+class Birthday(BaseField):
     DATE_FORMAT = "%d.%m.%Y"
     MIN_YEAR = 1900
     _PATTERN = re.compile(r"\d{2}\.\d{2}\.\d{4}")
@@ -112,7 +85,7 @@ class Birthday(Field):
             )
 
 
-class Address(Field):
+class Address(BaseField):
     MAX_LENGTH = 200
 
     @classmethod

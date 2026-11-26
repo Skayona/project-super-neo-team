@@ -6,13 +6,13 @@ from typing import Any
 
 from rich.console import Console
 
+from assistant.contacts.fields import Birthday
 from assistant.contacts.record import Record
 from assistant.core.exceptions import (
     ContactExistsError,
     ContactNotFoundError,
     UsageError,
 )
-from assistant.core.fields import Birthday
 from assistant.ui.views import format_warn
 
 console = Console()
@@ -58,7 +58,10 @@ class AddressBook(UserDict[str, Record]):
         matches = []
         for record in self.values():
             fields = (
-                record.name, record.email, record.address, record.birthday
+                record.name,
+                record.email,
+                record.address,
+                record.birthday,
             )
             matches_field = any(
                 field is not None and query in field.value.casefold()
@@ -83,9 +86,7 @@ class AddressBook(UserDict[str, Record]):
 
     def get_upcoming_birthdays(self, days: int = 7) -> list[UpcomingBirthday]:
         if not 1 <= days <= 365:
-            raise UsageError(
-                "Кількість днів — ціле число від 1 до 365"
-            )
+            raise UsageError("Кількість днів — ціле число від 1 до 365")
 
         today = date.today()
         results = []
@@ -98,9 +99,7 @@ class AddressBook(UserDict[str, Record]):
             ).date()
             birthday = self.__handle_leap_year(birth_date, today.year)
             if birthday < today:
-                birthday = self.__handle_leap_year(
-                    birth_date, today.year + 1
-                )
+                birthday = self.__handle_leap_year(birth_date, today.year + 1)
 
             days_left = (birthday - today).days
             if days_left > days:
@@ -111,8 +110,11 @@ class AddressBook(UserDict[str, Record]):
                 congratulation_date += timedelta(days=7 - birthday.weekday())
             results.append(
                 UpcomingBirthday(
-                    name, birthday, days_left,
-                    birthday.year - birth_date.year, congratulation_date,
+                    name,
+                    birthday,
+                    days_left,
+                    birthday.year - birth_date.year,
+                    congratulation_date,
                 )
             )
         return sorted(results, key=lambda result: result.birthday)
