@@ -1,6 +1,11 @@
 from typing import Any
 
-from assistant.core.exceptions import PhoneExistsError, PhoneNotFoundError
+from assistant.core.exceptions import (
+    BirthdayExistsError,
+    BirthdayNotFoundError,
+    PhoneExistsError,
+    PhoneNotFoundError,
+)
 from assistant.core.fields import Address, Birthday, Email, Name, Phone
 
 
@@ -50,6 +55,20 @@ class Record:
             raise PhoneNotFoundError(phone)
 
     def add_birthday(self, date: str) -> None:
+        if self.birthday is not None:
+            raise BirthdayExistsError(self.name.value)
+        self.birthday = Birthday(date)
+        
+
+    def delete_birthday(self) -> None:
+        if self.birthday is None:
+            raise BirthdayNotFoundError(self.name.value)
+        self.birthday = None
+
+    def change_birthday(self, date: str) -> None:
+        if self.birthday is None:
+            raise BirthdayNotFoundError(self.name.value)
+
         self.birthday = Birthday(date)
 
     def add_address(self, value: str) -> None:
@@ -63,10 +82,9 @@ class Record:
             "email": self.email.value if self.email else None,
             "address": self.address.value if self.address else None,
         }
-
+    
     def show_all_phones(self) -> str:
-        phones = "; ".join(p.value for p in self.phones)
-        return f"Phones for {self.name.value}: {phones}"
+        return "; ".join(p.value for p in self.phones)
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "Record":
