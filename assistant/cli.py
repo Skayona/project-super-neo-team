@@ -12,6 +12,7 @@ from assistant.general_commands import (
     exit_handler,
     parse_input,
 )
+from assistant.notes.tag_commands import build_tag_commands
 from assistant.ui.completer import init_assistant_completer
 from assistant.ui.views import format_error, format_info
 
@@ -78,6 +79,7 @@ def main() -> None:
 
     commands: dict[str, Command] = {}
     commands.update(build_contacts_commands(assistant_ctx.address_book))
+    commands.update(build_tag_commands(assistant_ctx.notebook))
 
     # TODO(notes): register the Notes commands below, e.g.
     # commands.update(build_notes_commands(assistant_ctx.notebook))
