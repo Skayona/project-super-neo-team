@@ -1,6 +1,6 @@
 from typing import Any
 
-from assistant.core.exceptions import AlreadyExistsError, ExtendedValueError
+from assistant.core.exceptions import PhoneExistsError, PhoneNotFoundError
 from assistant.core.fields import Address, Birthday, Email, Name, Phone
 
 
@@ -15,9 +15,7 @@ class Record:
     def add_phone(self, phone: str) -> None:
         new_phone = Phone(phone)
         if self.find_phone(new_phone.value):
-            raise AlreadyExistsError(
-                f"Phone number {phone} already exists for {self.name.value}."
-            )
+            raise PhoneExistsError(phone, self.name.value)
         self.phones.append(new_phone)
 
     def add_email(self, value: str) -> None:
@@ -26,41 +24,36 @@ class Record:
     def remove_phone(self, phone: str) -> None:
         phone_to_remove = self.find_phone(phone)
         if phone_to_remove is None:
-            raise ExtendedValueError(f"Phone number {phone} doesn't exist.")
+            raise PhoneNotFoundError(phone)
         self.phones.remove(phone_to_remove)
 
     def edit_phone(self, old_phone: str, new_phone: str) -> None:
         phone_to_edit = self.find_phone(old_phone)
         if phone_to_edit is None:
-            raise ExtendedValueError(
-                f"Phone number {old_phone} doesn't exist."
-            )
+            raise PhoneNotFoundError(old_phone)
         replacement = Phone(new_phone)
         if new_phone != old_phone and self.find_phone(new_phone):
-            raise AlreadyExistsError(
-                f"Phone number {new_phone} already exists "
-                f"for {self.name.value}."
-            )
+            raise PhoneExistsError(new_phone, self.name.value)
         index = self.phones.index(phone_to_edit)
         self.phones[index] = replacement
 
     def find_phone(self, number: str) -> Phone | None:
         return next(
-            (phone for phone in self.phones if phone.value == number), None
+            (phone for phone in self.phones if phone.value == number),
+            None,
         )
-
     def delete_phone(self, phone: str) -> None:
         phone_to_delete = self.find_phone(phone)
         if phone_to_delete:
             self.phones.remove(phone_to_delete)
         else:
-            raise ExtendedValueError(f"Phone number {phone} doesn't exist.")
+            raise PhoneNotFoundError(phone)
 
     def add_birthday(self, date: str) -> None:
         self.birthday = Birthday(date)
 
     def add_address(self, value: str) -> None:
-        self.address = Address(value)  # noqa: F821
+        self.address = Address(value)
 
     def to_dict(self) -> dict[str, Any]:
         return {

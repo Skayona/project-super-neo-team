@@ -4,9 +4,9 @@ from typing import Any
 
 from rich.panel import Panel
 
-from assistant.contacts.address_book import ExtendedValueError
 from assistant.context.context import AssistantContext
 from assistant.core.command import Command
+from assistant.core.exceptions import UsageError
 from assistant.ui.views import format_command_card, format_help, format_info
 
 
@@ -16,13 +16,13 @@ def parse_input(user_input: str) -> tuple[str, list[str]]:
 
     user_input = user_input.strip()
     splitter = shlex.shlex(user_input, posix=True)
-    splitter.quotes = '"'  # апострофи в назвах не мають бути викинуиті
+    splitter.quotes = '"'  # Зберігаємо апострофи в назвах
     splitter.whitespace_split = True
 
     try:
         splitted_input = list(splitter)
     except ValueError:
-        raise ExtendedValueError("Незакрита лапка у команді.")
+        raise UsageError("Незакрита лапка у команді.") from None
 
     if not splitted_input:
         return "", []

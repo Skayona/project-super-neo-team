@@ -6,17 +6,16 @@ from typing import Any
 from rich.console import Console
 
 from assistant.contacts.record import Record
-from assistant.core.exceptions import AlreadyExistsError, ExtendedValueError
+from assistant.core.exceptions import ContactExistsError, ContactNotFoundError
 from assistant.ui.views import format_warn
 
 console = Console()
-
 
 class AddressBook(UserDict[str, Record]):
     def add_record(self, record: Record) -> None:
         name = record.name.value
         if self.find(name) is not None:
-            raise AlreadyExistsError("Contact already exists.")
+            raise ContactExistsError(name)
 
         self.data[name] = record
 
@@ -60,7 +59,7 @@ class AddressBook(UserDict[str, Record]):
     def delete(self, name: str) -> None:
         record = self.find(name)
         if record is None:
-            raise ExtendedValueError("Contact doesn't exist.")
+            raise ContactNotFoundError(name)
         del self.data[record.name.value]
 
     def to_dict(self) -> dict[str, dict[str, str]]:

@@ -1,11 +1,13 @@
 from prompt_toolkit import PromptSession
 from rich.console import Console
+from rich.markup import escape
 
 from assistant.contacts.handlers_registry import build_contacts_commands
 from assistant.context.context import AssistantContext
-from assistant.core.command import Command, CommandResult
+from assistant.core.command import Command
+from assistant.core.command_result import CommandResult
+from assistant.core.exceptions import AssistantError, UsageError
 from assistant.general_commands import (
-    ExtendedValueError,
     build_general_commands,
     exit_handler,
     parse_input,
@@ -23,15 +25,15 @@ def run_loop(
 ) -> None:
     while True:
         try:
-            user_input = session.prompt("Enter a command: ")
+            user_input = session.prompt("Введіть команду: ")
             command_key, args = parse_input(user_input)
         except KeyboardInterrupt:
             continue
         except EOFError:
             console.print(exit_handler(ctx))
             break
-        except ExtendedValueError as err:
-            console.print(format_error(str(err)))
+        except AssistantError as err:
+            console.print(format_error(err.message))
             continue
 
         if not command_key:
@@ -39,12 +41,12 @@ def run_loop(
 
         command = commands.get(command_key)
 
-        if command:
-            try:
-                result = command.handler(args)
-            except Exception as err:
-                console.print(format_error(f"Непередбачена помилка: {err}"))
-                continue
+        if command is None:
+            console.print(format_error("Невідома команда."))
+            continue
+
+        try:
+            result = command.handler(args)
 
             if isinstance(result, CommandResult):
                 if command.mutates and result.changed:
@@ -52,10 +54,23 @@ def run_loop(
                 console.print(result.output)
             else:
                 console.print(result)
-            if command_key in ("close", "exit"):
-                break
-        else:
-            console.print(format_error("Invalid command."))
+
+        except UsageError as err:
+            console.print(
+                format_error(
+                    f"{err.message} "
+                    f"Використання: {escape(command.usage)}"
+                )
+            )
+        except AssistantError as err:
+            console.print(format_error(err.message))
+        except Exception as err:
+            console.print(
+                format_error(f"Непередбачена помилка: {err}")
+            )
+
+        if command_key in ("close", "exit"):
+            break
 
 
 def main() -> None:
@@ -63,6 +78,7 @@ def main() -> None:
 
     commands: dict[str, Command] = {}
     commands.update(build_contacts_commands(assistant_ctx.address_book))
+
     # TODO(notes): register the Notes commands below, e.g.
     # commands.update(build_notes_commands(assistant_ctx.notebook))
     # They must have category="Notes" to appear in `help`.
