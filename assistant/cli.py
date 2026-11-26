@@ -59,7 +59,6 @@ def run_loop(
 
 
 def main() -> None:
-    # TODO: provide a real notebook value when ready
     assistant_ctx = AssistantContext.load()
 
     commands: dict[str, Command] = {}
