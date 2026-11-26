@@ -10,8 +10,9 @@ from assistant.contacts.record import Record
 from assistant.core.command import Command, MutationCommand
 from assistant.core.exceptions import (
     AddressValidationError,
+    AlreadyExistsError,
+    BirthdayValidationError,
     ContactNotFoundError,
-    EmailValidationError,
     PhoneExistsError,
     UsageError,
 )
@@ -201,33 +202,68 @@ def upcoming_birthdays(
 
 
 @input_error
-def add_email(book: AddressBook, args: list[str]) -> str:
-    raise EmailValidationError()
+def add_email(book: AddressBook, args: list[str]) -> Panel:
+    name, email, *_ = args
+    record = get_record(book, name)
+    if record.email is not None:
+        raise AlreadyExistsError(
+            f"У контакту {name} вже є email {record.email.value}. "
+            f"Щоб замінити, використайте change-email."
+        )
+    record.add_email(email)
+    return format_success(f"Email {email} додано до контакту {name}")
 
 
 @input_error
-def change_email(book: AddressBook, args: list[str]) -> str:
-    raise EmailValidationError()
+def change_email(book: AddressBook, args: list[str]) -> Panel:
+    name, email, *_ = args
+    record = get_record(book, name)
+    record.edit_email(email)
+    return format_success(f"Email контакту {name} змінено на {email}")
 
 
 @input_error
-def delete_email(book: AddressBook, args: list[str]) -> str:
-    raise ContactNotFoundError(args[0])
+def delete_email(book: AddressBook, args: list[str]) -> Panel:
+    name, *_ = args
+    record = get_record(book, name)
+    record.delete_email()
+    return format_success(f"Email контакту {name} видалено")
+
+
+def parse_name_and_address(args: list[str]) -> tuple[str, str]:
+    name, *rest = args
+    if not rest:
+        raise UsageError("Недостатньо аргументів.")
+    return name, " ".join(rest)
 
 
 @input_error
-def add_address(book: AddressBook, args: list[str]) -> str:
-    raise AddressValidationError()
+def add_address(book: AddressBook, args: list[str]) -> Panel:
+    name, address = parse_name_and_address(args)
+    record = get_record(book, name)
+    if record.address is not None:
+        raise AlreadyExistsError(
+            f"У контакту {name} вже є адреса. "
+            f"Щоб замінити, використайте change-address."
+        )
+    record.add_address(address)
+    return format_success(f"Адресу контакту {name} додано: {address}")
 
 
 @input_error
-def change_address(book: AddressBook, args: list[str]) -> str:
-    raise AddressValidationError()
+def change_address(book: AddressBook, args: list[str]) -> Panel:
+    name, address = parse_name_and_address(args)
+    record = get_record(book, name)
+    record.edit_address(address)
+    return format_success(f"Адресу контакту {name} змінено на: {address}")
 
 
 @input_error
-def delete_address(book: AddressBook, args: list[str]) -> str:
-    raise ContactNotFoundError(args[0])
+def delete_address(book: AddressBook, args: list[str]) -> Panel:
+    name, *_ = args
+    record = get_record(book, name)
+    record.delete_address()
+    return format_success(f"Адресу контакту {name} видалено")
 
 
 # Complete logic for prompt showing suggestions
