@@ -51,8 +51,11 @@ def exit_handler(ctx: AssistantContext, *_: Any) -> Panel:
     return format_info("Good bye!")
 
 
-def exit_command(ctx: AssistantContext):
-    return Command(
+def build_general_commands(
+    ctx: AssistantContext,
+    commands: dict[str, Command],
+) -> dict[str, Command]:
+    exit_command = Command(
         handler=partial(exit_handler, ctx),
         usage="exit | close",
         description="Зберігає дані та завершує роботу асистента",
@@ -60,11 +63,6 @@ def exit_command(ctx: AssistantContext):
         example="exit",
     )
 
-
-def build_general_commands(
-    ctx: AssistantContext,
-    commands: dict[str, Command],
-) -> dict[str, Command]:
     return {
         "hello": Command(
             handler=hello_handler,
@@ -80,6 +78,6 @@ def build_general_commands(
             category="General",
             example="help | help <command>",
         ),
-        "close": exit_command(ctx),
-        "exit": exit_command(ctx),
+        "close": exit_command,
+        "exit": exit_command,
     }
