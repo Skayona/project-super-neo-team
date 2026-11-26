@@ -1,6 +1,7 @@
 """Core package containing exceptions and base field types."""
 
 from assistant.core.command import Command
+from assistant.core.command_result import CommandResult
 from assistant.core.exceptions import (
     AddressValidationError,
     AlreadyExistsError,
@@ -33,6 +34,7 @@ from assistant.core.input_error_decorator import input_error
 
 __all__ = [
     "Command",
+    "CommandResult",
     "AssistantError",
     "ValidationError",
     "NameValidationError",

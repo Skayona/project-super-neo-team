@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from functools import partial
 from typing import Any
 
 from rich.panel import Panel
@@ -89,9 +90,7 @@ def find_contact(book: AddressBook, args: list[str]) -> Table | Panel:
 
     matches = book.search(query)
     if not matches:
-        return format_info(
-            f"Контактів за запитом «{query}» не знайдено."
-        )
+        return format_info(f"Контактів за запитом «{query}» не знайдено.")
     return render_contacts_table(matches, "Результати пошуку")
 
 
@@ -246,7 +245,7 @@ def complete_name_and_phone(book: AddressBook, args: list[str]) -> list[str]:
 def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
     return {
         "add-contact": MutationCommand(
-            handler=add_contact,
+            handler=partial(add_contact, book),
             usage=(
                 "add-contact <ім'я> [телефон] [email] [ДД.ММ.РРРР] [адреса]"
             ),
@@ -256,11 +255,11 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
                 'імʼя з пробілом — у лапках: "Anna Petrenko")'
             ),
             category="Contacts",
-            example=
-            "add-contact Anna 0501234567 anna@mail.com 15.03.1995 Київ",
+            example="add-contact Anna 0501234567 anna@mail.com 15.03.1995 "
+            "Київ",
         ),
         "delete-contact": MutationCommand(
-            handler=delete_contact,
+            handler=partial(delete_contact, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="delete-contact <ім'я>",
             description="Видалити контакт із книги",
@@ -268,7 +267,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="delete-contact Anna",
         ),
         "find-contact": Command(
-            handler=find_contact,
+            handler=partial(find_contact, book),
             usage="find-contact <запит...>",
             description=(
                 "Знайти контакти за іменем, телефоном, email, "
@@ -278,14 +277,14 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="find-contact Anna",
         ),
         "show-all-contacts": Command(
-            handler=show_all_contacts,
+            handler=partial(show_all_contacts, book),
             usage="show-all-contacts",
             description="Показати всі збережені контакти",
             category="Contacts",
             example="show-all-contacts",
         ),
         "add-phone": MutationCommand(
-            handler=add_phone,
+            handler=partial(add_phone, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="add-phone <ім'я> <телефон>",
             description="Додати додатковий номер телефону до контакту",
@@ -293,7 +292,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="add-phone Anna 0507654321",
         ),
         "show-phone": Command(
-            handler=show_phone,
+            handler=partial(show_phone, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="show-phone <ім'я>",
             description="Показати інформацію та телефони контакту",
@@ -301,7 +300,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="show-phone Anna",
         ),
         "change-phone": MutationCommand(
-            handler=change_phone,
+            handler=partial(change_phone, book),
             arg_completer=lambda args: complete_name_and_phone(book, args),
             usage="change-phone <ім'я> <старий_телефон> <новий_телефон>",
             description="Змінити існуючий номер телефону контакту",
@@ -309,7 +308,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="change-phone Anna 0501234567 0509998877",
         ),
         "delete-phone": MutationCommand(
-            handler=delete_phone,
+            handler=partial(delete_phone, book),
             arg_completer=lambda args: complete_name_and_phone(book, args),
             usage="delete-phone <ім'я> <телефон>",
             description="Видалити номер телефону у контакту",
@@ -317,7 +316,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="delete-phone Anna 0501234567",
         ),
         "add-birthday": MutationCommand(
-            handler=add_birthday,
+            handler=partial(add_birthday, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="add-birthday <ім'я> <дн - ДД.ММ.РРРР>",
             description="Додати день народження до контакту",
@@ -325,7 +324,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="add-birthday Anna 15.03.1995",
         ),
         "show-birthday": Command(
-            handler=show_birthday,
+            handler=partial(show_birthday, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="show-birthday <ім'я>",
             description="Показати день народження контакту",
@@ -333,7 +332,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="show-birthday Anna",
         ),
         "change-birthday": MutationCommand(
-            handler=change_birthday,
+            handler=partial(change_birthday, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="change-birthday <ім'я> <дн - ДД.ММ.РРРР>",
             description="Змінити день народження контакту",
@@ -341,7 +340,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="change-birthday Anna 20.04.1996",
         ),
         "delete-birthday": MutationCommand(
-            handler=delete_birthday,
+            handler=partial(delete_birthday, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="delete-birthday <ім'я>",
             description="Видалити день народження у контакту",
@@ -349,15 +348,16 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="delete-birthday Anna",
         ),
         "upcoming-birthdays": Command(
-            handler=upcoming_birthdays,
+            handler=partial(upcoming_birthdays, book),
             usage="upcoming-birthdays [дні=7]",
-            description=
-            ("Показати контакти з днями народження у найближчі дні"),
+            description=(
+                "Показати контакти з днями народження у найближчі дні"
+            ),
             category="Contacts",
             example="upcoming-birthdays 14",
         ),
         "add-email": MutationCommand(
-            handler=add_email,
+            handler=partial(add_email, book),
             usage="add-email <ім'я> <email>",
             arg_completer=lambda args: complete_contact_name(book, args),
             description="Додати email до контакту",
@@ -365,7 +365,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="add-email Anna anna@mail.com",
         ),
         "change-email": MutationCommand(
-            handler=change_email,
+            handler=partial(change_email, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="change-email <ім'я> <новий_email>",
             description="Змінити email контакту",
@@ -373,7 +373,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="change-email Anna new@mail.com",
         ),
         "delete-email": MutationCommand(
-            handler=delete_email,
+            handler=partial(delete_email, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="delete-email <ім'я>",
             description="Видалити email у контакту",
@@ -381,7 +381,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="delete-email Anna",
         ),
         "add-address": MutationCommand(
-            handler=add_address,
+            handler=partial(add_address, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="add-address <ім'я> <адреса...>",
             description="Додати адресу до контакту",
@@ -389,7 +389,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="add-address Anna Київ, вул. Хрещатик 1",
         ),
         "change-address": MutationCommand(
-            handler=change_address,
+            handler=partial(change_address, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="change-address <ім'я> <нова_адреса...>",
             description="Змінити адресу контакту",
@@ -397,7 +397,7 @@ def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
             example="change-address Anna Львів, пл. Ринок 5",
         ),
         "delete-address": MutationCommand(
-            handler=delete_address,
+            handler=partial(delete_address, book),
             arg_completer=lambda args: complete_contact_name(book, args),
             usage="delete-address <ім'я>",
             description="Видалити адресу у контакту",

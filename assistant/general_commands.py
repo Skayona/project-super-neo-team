@@ -1,14 +1,12 @@
 import shlex
-from collections.abc import Callable
 from functools import partial
 from typing import Any
 
 from rich.panel import Panel
 
-from assistant.contacts.address_book import AddressBook
+from assistant.context.context import AssistantContext
 from assistant.core.command import Command
 from assistant.core.exceptions import UsageError
-from assistant.storage.storage import save_address_book
 from assistant.ui.views import format_command_card, format_help, format_info
 
 
@@ -18,13 +16,13 @@ def parse_input(user_input: str) -> tuple[str, list[str]]:
 
     user_input = user_input.strip()
     splitter = shlex.shlex(user_input, posix=True)
-    splitter.quotes = '"'  # апострофи в назвах не мають бути викинуиті
+    splitter.quotes = '"'  # Зберігаємо апострофи в назвах
     splitter.whitespace_split = True
 
     try:
         splitted_input = list(splitter)
     except ValueError:
-        raise UsageError("Незакрита лапка у команді.")
+        raise UsageError("Незакрита лапка у команді.") from None
 
     if not splitted_input:
         return "", []
@@ -40,33 +38,31 @@ def hello_handler(*_: Any) -> Panel:
 
 
 def help_handler(
-    get_commands: Callable[[], dict[str, Command]],
-    book: AddressBook,
+    commands: dict[str, Command],
     args: list[str],
 ) -> Any:
-    commands = get_commands()
     if args:
         return format_command_card(commands, args[0])
     return format_help(commands)
 
 
-def exit_handler(book: AddressBook, *_: Any) -> Panel:
-    save_address_book(book)
+def exit_handler(ctx: AssistantContext, *_: Any) -> Panel:
+    ctx.save_all()
     return format_info("Good bye!")
 
 
-exit_command = Command(
-    handler=exit_handler,
-    usage="exit | close",
-    description="Зберігає дані та завершує роботу асистента",
-    category="General",
-    example = "exit",
-)
-
-
 def build_general_commands(
-    get_commands: Callable[[], dict[str, Command]],
+    ctx: AssistantContext,
+    commands: dict[str, Command],
 ) -> dict[str, Command]:
+    exit_command = Command(
+        handler=partial(exit_handler, ctx),
+        usage="exit | close",
+        description="Зберігає дані та завершує роботу асистента",
+        category="General",
+        example="exit",
+    )
+
     return {
         "hello": Command(
             handler=hello_handler,
@@ -76,7 +72,7 @@ def build_general_commands(
             example="hello",
         ),
         "help": Command(
-            handler=partial(help_handler, get_commands),
+            handler=partial(help_handler, commands),
             usage="help",
             description="Показує список усіх доступних команд",
             category="General",

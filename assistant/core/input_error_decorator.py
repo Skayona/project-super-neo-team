@@ -3,7 +3,12 @@ from functools import wraps
 from typing import Any
 
 from assistant.core.command import CommandResult
-from assistant.core.exceptions import AssistantError, UsageError
+from assistant.core import (
+    BirthdayError,
+    CommandResult,
+    ExtendedValueError,
+    MissingContactError,
+)
 from assistant.ui.views import format_error
 
 
