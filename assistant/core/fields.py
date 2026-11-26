@@ -1,4 +1,5 @@
 import re
+from abc import ABC, abstractmethod
 from datetime import date, datetime
 
 from assistant.core.exceptions import (
@@ -10,7 +11,7 @@ from assistant.core.exceptions import (
 )
 
 
-class Field:
+class Field(ABC):
     def __init__(self, value: str):
         normalized = self.normalize(value)
         self.validate(normalized)
@@ -21,8 +22,9 @@ class Field:
         return value
 
     @classmethod
+    @abstractmethod
     def validate(cls, value: str) -> None:
-        pass
+        raise NotImplementedError
 
     def __str__(self) -> str:
         return str(self.value)
