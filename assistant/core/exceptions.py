@@ -87,6 +87,9 @@ class PhoneNotFoundError(NotFoundError):
     def __init__(self, phone=""):
         super().__init__(f"Телефон '{phone}' не знайдено.")
 
+class BirthdayNotFoundError(NotFoundError):
+    def __init__(self, name):
+        super().__init__(f"У контакту {name} не вказано дату народження")
 
 # ===================== Already Exists Errors =====================
 
@@ -106,3 +109,8 @@ class ContactExistsError(AlreadyExistsError):
 class NoteExistsError(AlreadyExistsError):
     def __init__(self, note=""):
         super().__init__(f"Нотатка '{note}' вже існує.")
+
+
+class BirthdayExistsError(AlreadyExistsError):
+    def __init__(self, name):
+        super().__init__(f"У контакту {name} вже вказано дату народження")

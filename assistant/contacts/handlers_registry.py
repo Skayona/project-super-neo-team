@@ -10,7 +10,6 @@ from assistant.contacts.record import Record
 from assistant.core.command import Command, MutationCommand
 from assistant.core.exceptions import (
     AlreadyExistsError,
-    BirthdayValidationError,
     ContactNotFoundError,
     PhoneExistsError,
     UsageError,
@@ -128,7 +127,10 @@ def add_phone(book: AddressBook, args: list[str]) -> Panel:
 def show_phone(book: AddressBook, args: list[str]) -> Panel:
     name = args[0]
     record = get_record(book, name)
-    return format_success(record.show_all_phones())
+    return format_card(
+        f"Контакт: {name}",
+        {"Телефони": record.show_all_phones()},
+    )
 
 
 @input_error
@@ -165,13 +167,20 @@ def show_birthday(book: AddressBook, args: list[str]) -> Panel | str:
 
 
 @input_error
-def change_birthday(book: AddressBook, args: list[str]) -> str:
-    raise BirthdayValidationError()
+def change_birthday(book: AddressBook, args: list[str]) -> Panel:
+    name = args[0]
+    date = args[1]
+    record = get_record(book,name)
+    record.change_birthday(date)
+    return format_success(f"Дату народження контакту {name} змінено")
 
 
 @input_error
-def delete_birthday(book: AddressBook, args: list[str]) -> str:
-    raise ContactNotFoundError(args[0])
+def delete_birthday(book: AddressBook, args: list[str]) -> Panel:
+    name = args[0]
+    record = get_record(book, name)
+    record.delete_birthday()
+    return format_success("Дату народження видалено")
 
 
 def upcoming_birthdays(
