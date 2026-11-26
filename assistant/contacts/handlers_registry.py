@@ -8,8 +8,11 @@ from assistant.contacts.address_book import AddressBook
 from assistant.contacts.record import Record
 from assistant.core.command import Command, MutationCommand
 from assistant.core.exceptions import (
-    AlreadyExistsError,
-    MissingContactError,
+    AddressValidationError,
+    BirthdayValidationError,
+    ContactNotFoundError,
+    EmailValidationError,
+    PhoneExistsError,
     UsageError,
 )
 from assistant.core.fields import Address, Birthday, Email, Phone
@@ -25,7 +28,7 @@ from assistant.ui.views import (
 def get_record(book: AddressBook, name: str) -> Record:
     record = book.find(name)
     if record is None:
-        raise MissingContactError(name)
+        raise ContactNotFoundError(name)
     return record
 
 
@@ -42,10 +45,7 @@ def add_contact_info(record: Record, args: list[str]) -> None:
     new_address = Address(plain_address) if plain_address else None
 
     if new_phone and record.find_phone(new_phone.value):
-        raise AlreadyExistsError(
-            f"Phone number {new_phone.value} already exists "
-            f"for {record.name.value}."
-        )
+        raise PhoneExistsError(new_phone.value, record.name.value)
 
     if new_phone:
         record.phones.append(new_phone)
@@ -168,12 +168,12 @@ def show_birthday(book: AddressBook, args: list[str]) -> Panel | str:
 
 @input_error
 def change_birthday(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+    raise BirthdayValidationError()
 
 
 @input_error
 def delete_birthday(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+    raise ContactNotFoundError(args[0])
 
 
 def upcoming_birthdays(
@@ -194,32 +194,32 @@ def upcoming_birthdays(
 
 @input_error
 def add_email(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+    raise EmailValidationError()
 
 
 @input_error
 def change_email(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+    raise EmailValidationError()
 
 
 @input_error
 def delete_email(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+    raise ContactNotFoundError(args[0])
 
 
 @input_error
 def add_address(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+    raise AddressValidationError()
 
 
 @input_error
 def change_address(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+    raise AddressValidationError()
 
 
 @input_error
 def delete_address(book: AddressBook, args: list[str]) -> str:
-    raise NotImplementedError
+    raise ContactNotFoundError(args[0])
 
 
 # Complete logic for prompt showing suggestions

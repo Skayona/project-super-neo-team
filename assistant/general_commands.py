@@ -5,8 +5,9 @@ from typing import Any
 
 from rich.panel import Panel
 
-from assistant.contacts.address_book import AddressBook, ExtendedValueError
+from assistant.contacts.address_book import AddressBook
 from assistant.core.command import Command
+from assistant.core.exceptions import UsageError
 from assistant.storage.storage import save_address_book
 from assistant.ui.views import format_command_card, format_help, format_info
 
@@ -23,7 +24,7 @@ def parse_input(user_input: str) -> tuple[str, list[str]]:
     try:
         splitted_input = list(splitter)
     except ValueError:
-        raise ExtendedValueError("Незакрита лапка у команді.")
+        raise UsageError("Незакрита лапка у команді.")
 
     if not splitted_input:
         return "", []
