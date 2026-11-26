@@ -60,14 +60,15 @@ class AddressValidationError(FieldValidationError):
     default_message = "Адреса не може бути порожньою."
 
 
-class NoteValidationError(ValidationError):
-    def __init__(self):
-        super().__init__("Текст нотатки не може бути порожнім.")
+class NoteValidationError(FieldValidationError):
+    default_message = "Заголовок нотатки не може бути порожнім."
 
 
-class TagValidationError(ValidationError):
-    def __init__(self):
-        super().__init__("Назва тегу не може бути порожньою.")
+class TagValidationError(FieldValidationError):
+    default_message = (
+        "Некоректний тег '{value}'. Тег: 1–30 символів, "
+        "лише літери, цифри, _ або -."
+    )
 
 
 # ===================== Not Found Errors =====================
