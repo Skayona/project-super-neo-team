@@ -9,7 +9,7 @@ from typing import Any
 from rich.console import Console
 
 from assistant.contacts.fields import Birthday
-from assistant.contacts.record import Record
+from assistant.contacts.record import Record, RecordData
 from assistant.core.exceptions import (
     ContactExistsError,
     ContactNotFoundError,
@@ -91,7 +91,7 @@ class AddressBook(UserDict[str, Record]):
             raise ContactNotFoundError(name)
         del self.data[record.name.value]
 
-    def to_dict(self) -> dict[str, dict[str, str]]:
+    def to_dict(self) -> dict[str, RecordData]:
         """Serialize all contact records."""
         return {name: record.to_dict() for name, record in self.data.items()}
 

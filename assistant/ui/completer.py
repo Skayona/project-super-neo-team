@@ -86,13 +86,16 @@ class AssistantCompleter(Completer):
 
 
 def get_bottom_toolbar(
-    session: PromptSession[str], commands: dict[str, Command]
+    session: PromptSession[str],
+    commands: dict[str, Command],
+    help_command: str,
 ) -> HTML:
     """Build the prompt's bottom toolbar."""
     text = session.default_buffer.text.strip()
     if not text:
         return HTML(
-            "Введіть <b>help</b> або натисніть <b>Tab</b> для підказки"
+            f"Введіть <b>{html.escape(help_command)}</b> "
+            "або натисніть <b>Tab</b> для підказки"
         )
 
     cmd_name = text.split()[0].lower()
@@ -118,6 +121,7 @@ PROMPT_STYLE = Style.from_dict(
 
 def init_assistant_completer(
     commands: dict[str, Command],
+    help_command: str,
 ) -> PromptSession[str]:
     """Create a prompt session with command completion."""
     kb = KeyBindings()
@@ -148,5 +152,9 @@ def init_assistant_completer(
         style=PROMPT_STYLE,
     )
 
-    session.bottom_toolbar = lambda: get_bottom_toolbar(session, commands)
+    session.bottom_toolbar = lambda: get_bottom_toolbar(
+        session,
+        commands,
+        help_command,
+    )
     return session

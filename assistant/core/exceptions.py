@@ -1,9 +1,10 @@
 """Define application and domain exceptions."""
 
+
 class AssistantError(Exception):
     """Represent an application-level error."""
 
-    def __init__(self, message: str):
+    def __init__(self, message: str) -> None:
         """Initialize an application error."""
         self.message = message
         super().__init__(message)
@@ -41,7 +42,11 @@ class FieldValidationError(ValidationError):
 
     default_message = "Некоректне значення '{value}'."
 
-    def __init__(self, value: str = "", message: str | None = None):
+    def __init__(
+        self,
+        value: str = "",
+        message: str | None = None,
+    ) -> None:
         """Initialize a field validation error."""
         self.value = value
         super().__init__(message or self.default_message.format(value=value))
@@ -107,7 +112,7 @@ class TagValidationError(FieldValidationError):
 class ContactNotFoundError(NotFoundError):
     """Represent a missing contact."""
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         """Initialize a missing-contact error."""
         super().__init__(f"Контакт '{name}' не знайдено.")
 
@@ -115,7 +120,7 @@ class ContactNotFoundError(NotFoundError):
 class NoteNotFoundError(NotFoundError):
     """Represent a missing note."""
 
-    def __init__(self, note):
+    def __init__(self, note: str) -> None:
         """Initialize a missing-note error."""
         super().__init__(f"Нотатка '{note}' не знайдена.")
 
@@ -123,7 +128,7 @@ class NoteNotFoundError(NotFoundError):
 class PhoneNotFoundError(NotFoundError):
     """Represent a missing phone number."""
 
-    def __init__(self, phone=""):
+    def __init__(self, phone: str = "") -> None:
         """Initialize a missing-phone error."""
         super().__init__(f"Телефон '{phone}' не знайдено.")
 
@@ -131,7 +136,7 @@ class PhoneNotFoundError(NotFoundError):
 class BirthdayNotFoundError(NotFoundError):
     """Represent a contact without a birthday."""
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         """Initialize a missing-birthday error."""
         super().__init__(f"У контакту {name} не вказано дату народження")
 
@@ -142,7 +147,7 @@ class BirthdayNotFoundError(NotFoundError):
 class PhoneExistsError(AlreadyExistsError):
     """Represent a duplicate phone number."""
 
-    def __init__(self, phone, name):
+    def __init__(self, phone: str, name: str) -> None:
         """Initialize a duplicate-phone error."""
         super().__init__(
             f"Номер телефону '{phone}' вже існує для контакту '{name}'"
@@ -152,7 +157,7 @@ class PhoneExistsError(AlreadyExistsError):
 class ContactExistsError(AlreadyExistsError):
     """Represent a duplicate contact."""
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         """Initialize a duplicate-contact error."""
         super().__init__(f"Контакт '{name}' вже існує.")
 
@@ -160,7 +165,7 @@ class ContactExistsError(AlreadyExistsError):
 class NoteExistsError(AlreadyExistsError):
     """Represent a duplicate note."""
 
-    def __init__(self, note=""):
+    def __init__(self, note: str = "") -> None:
         """Initialize a duplicate-note error."""
         super().__init__(f"Нотатка '{note}' вже існує.")
 
@@ -168,6 +173,6 @@ class NoteExistsError(AlreadyExistsError):
 class BirthdayExistsError(AlreadyExistsError):
     """Represent a contact that already has a birthday."""
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         """Initialize a duplicate-birthday error."""
         super().__init__(f"У контакту {name} вже вказано дату народження")

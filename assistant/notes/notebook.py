@@ -4,9 +4,13 @@ from collections import Counter, UserDict
 from datetime import datetime
 from typing import Any
 
+from rich.console import Console
+
 from assistant.core.exceptions import NoteExistsError, NoteNotFoundError
 from assistant.notes.fields import NoteTag
 from assistant.notes.note import Note
+
+_console = Console()
 
 
 class Notebook(UserDict[str, Note]):
@@ -138,19 +142,32 @@ class Notebook(UserDict[str, Note]):
     def _tags(note: Note) -> set[str]:
         return {tag.value for tag in note.tags}
 
-    def to_dict(self) -> dict[str, dict[str, Any]]:
+    def to_dict(self) -> dict[str, dict[str, str | list[str]]]:
         """Serialize all notes."""
         return {key: note.to_dict() for key, note in self.items()}
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Notebook":
         """Build a notebook from serialized notes."""
+        from assistant.ui.views import format_warn
+
         notebook = cls()
+        skipped = 0
         for item in data.values():
             if not isinstance(item, dict):
+                skipped += 1
                 continue
             try:
                 notebook.add_note(Note.from_dict(item))
             except Exception:
-                continue
+                skipped += 1
+
+        if skipped:
+            _console.print(
+                format_warn(
+                    "Під час завантаження нотатника було пропущено "
+                    f"некоректних записів: {skipped}.\n"
+                    "Некоректні записи будуть видалені з нотатника."
+                )
+            )
         return notebook

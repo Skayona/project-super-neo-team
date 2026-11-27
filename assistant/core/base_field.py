@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 class BaseField(ABC):
     """Normalize and validate a field value."""
 
-    def __init__(self, value: str):
+    def __init__(self, value: str) -> None:
         """Initialize a field with a validated value."""
         normalized = self.normalize(value)
         self.validate(normalized)

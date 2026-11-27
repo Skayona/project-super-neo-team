@@ -67,7 +67,7 @@ class Note:
         """Return the update time for display."""
         return self.updated_at.strftime(DISPLAY_FORMAT)
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, str | list[str]]:
         """Serialize the note."""
         return {
             "title": self.title.value,

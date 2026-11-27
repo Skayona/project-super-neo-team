@@ -1,7 +1,7 @@
 """Represent a contact and its details."""
 
 from contextlib import suppress
-from typing import Any
+from typing import Any, TypedDict
 
 from assistant.contacts.fields import Address, Birthday, Email, Name, Phone
 from assistant.core.exceptions import (
@@ -14,10 +14,20 @@ from assistant.core.exceptions import (
 )
 
 
+class RecordData(TypedDict):
+    """Represent the JSON-compatible data for a contact record."""
+
+    name: str
+    phones: list[str]
+    birthday: str | None
+    email: str | None
+    address: str | None
+
+
 class Record:
     """Store the details for one contact."""
 
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         """Initialize a contact record."""
         self.name = Name(name)
         self.phones: list[Phone] = []
@@ -110,7 +120,7 @@ class Record:
             raise NotFoundError(f"У контакту {self.name.value} немає адреси.")
         self.address = None
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> RecordData:
         """Serialize the contact details."""
         return {
             "name": self.name.value,
