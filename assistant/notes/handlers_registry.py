@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from difflib import get_close_matches
 from functools import partial
 
 from rich.console import Group
@@ -40,19 +41,28 @@ def _parse_note_args(
         raise UsageError("Вкажіть заголовок нотатки.")
 
     title = args[0]
-    content_parts: list[str] = []
+    content = ""
     tags: list[str] = []
 
-    for arg in args[1:]:
-        if arg.startswith("#"):
-            tags.append(arg)
-        else:
-            content_parts.append(arg)
+    remaining = args[1:]
 
-    return title, " ".join(content_parts), tags
+    if remaining:
+        if remaining[0] == "-":
+            remaining = remaining[1:]
+        elif not remaining[0].startswith("#"):
+            content = remaining[0]
+            remaining = remaining[1:]
+
+    for arg in remaining:
+        if arg == "-":
+            continue
+
+        tags.extend(arg.split())
+
+    return title, content, tags
 
 
-def _render_notes_table(title: str, notes: list[Note]):
+def _render_notes_table(title: str, notes: list[Note]) -> Table | Panel:
     rows = [
         [
             note.title.value,
@@ -75,8 +85,8 @@ def _render_notes_table(title: str, notes: list[Note]):
     )
 
 
-def add_note(notebook: Notebook, args: list[str]):
-
+@input_error
+def add_note(notebook: Notebook, args: list[str]) -> CommandResult:
     title, content, tags = _parse_note_args(args)
 
     note = Note(
@@ -87,51 +97,64 @@ def add_note(notebook: Notebook, args: list[str]):
 
     notebook.add_note(note)
 
-    return format_success(f"Нотатку «{note.title.value}» успішно додано.")
+    return CommandResult(
+        format_success(f"Нотатку «{note.title.value}» успішно додано."),
+        changed=True,
+    )
 
 
-def show_note(notebook: Notebook, args: list[str]):
+@input_error
+def show_note(notebook: Notebook, args: list[str]) -> CommandResult:
     if not args:
-        raise UsageError("Вкажіть заголовок нотатки")
+        raise UsageError("Вкажіть заголовок нотатки.")
 
     title = " ".join(args)
-    note = notebook.find_note(title)
-
-    if note is None:
-        raise NoteNotFoundError(title)
+    note = get_note(notebook, title)
 
     tags = (
         ", ".join(f"#{tag}" for tag in sorted(t.value for t in note.tags))
         or "—"
     )
 
-    return format_card(
-        note.title.value,
-        {
-            "Текст": note.content.value,
-            "Теги": tags,
-            "Створено": note.created_at_display,
-            "Оновлено": note.updated_at_display,
-        },
+    return CommandResult(
+        format_card(
+            note.title.value,
+            {
+                "Текст": note.content.value,
+                "Теги": tags,
+                "Створено": note.created_at_display,
+                "Оновлено": note.updated_at_display,
+            },
+        ),
+        changed=False,
     )
 
 
-def all_notes(notebook: Notebook, args: list[str]):
+@input_error
+def all_notes(notebook: Notebook, args: list[str]) -> CommandResult:
     if args:
         raise UsageError("Команда не приймає аргументів.")
 
     if not notebook:
-        return format_error("Нотаток ще немає. Додайте: add-note ...")
+        return CommandResult(
+            format_info("Нотаток ще немає. Додайте: add-note ..."),
+            changed=False,
+        )
+
     notes = sorted(
         reversed(list(notebook.values())),
         key=lambda note: note.created_at,
         reverse=True,
     )
 
-    return _render_notes_table("Усі нотатки", notes)
+    return CommandResult(
+        _render_notes_table("Усі нотатки", notes),
+        changed=False,
+    )
 
 
-def find_note(notebook: Notebook, args: list[str]):
+@input_error
+def find_note(notebook: Notebook, args: list[str]) -> CommandResult:
     query = " ".join(args).strip()
 
     if not query:
@@ -147,14 +170,94 @@ def find_note(notebook: Notebook, args: list[str]):
                 notes.append(note)
 
     if not notes:
-        return format_error(f"За запитом «{query}» нічого не знайдено.")
+        return CommandResult(
+            format_info(f"За запитом «{query}» нічого не знайдено."),
+            changed=False,
+        )
 
     notes.sort(
         key=lambda note: note.created_at,
         reverse=True,
     )
 
-    return _render_notes_table("Результати пошуку", notes)
+    return CommandResult(
+        _render_notes_table("Результати пошуку", notes),
+        changed=False,
+    )
+
+
+@input_error
+def edit_note(notebook: Notebook, args: list[str]) -> CommandResult:
+    if len(args) < 2:
+        raise UsageError("Вкажіть заголовок нотатки та новий текст.")
+
+    title = args[0]
+    content = " ".join(args[1:])
+
+    note = notebook.update_note(title, text=content)
+
+    return CommandResult(
+        format_success(
+            f"Текст нотатки «{note.title.value}» успішно оновлено."
+        ),
+        changed=True,
+    )
+
+
+@input_error
+def rename_note(notebook: Notebook, args: list[str]) -> CommandResult:
+    if len(args) != 2:
+        raise UsageError("Вкажіть поточний та новий заголовки нотатки.")
+
+    old_title, new_title = args
+
+    note = notebook.rename_note(old_title, new_title)
+
+    return CommandResult(
+        format_success(
+            f"Нотатку «{old_title}» перейменовано на «{note.title.value}»."
+        ),
+        changed=True,
+    )
+
+
+@input_error
+def delete_note(notebook: Notebook, args: list[str]) -> CommandResult:
+    if not args:
+        raise UsageError("Вкажіть заголовок нотатки.")
+
+    title = " ".join(args).strip()
+    note = notebook.find_note(title)
+
+    if note is None:
+        titles = {
+            item.title.value.casefold(): item.title.value
+            for item in notebook.values()
+        }
+
+        matches = get_close_matches(
+            title.casefold(),
+            list(titles),
+            n=1,
+            cutoff=0.6,
+        )
+
+        message = f"Нотатка «{title}» не знайдена."
+
+        if matches:
+            message += f"\nМожливо, ви мали на увазі: «{titles[matches[0]]}»?"
+
+        return CommandResult(
+            format_error(message),
+            changed=False,
+        )
+
+    notebook.delete_note(title)
+
+    return CommandResult(
+        format_success(f"Нотатку «{note.title.value}» успішно видалено."),
+        changed=True,
+    )
 
 
 def format_tags(note: Note) -> str:
@@ -274,16 +377,15 @@ def build_notes_commands(notebook: Notebook) -> dict[str, Command]:
     return {
         "add-note": MutationCommand(
             handler=partial(add_note, notebook),
-            usage=("add-note <назва нотатки> [вміст нотатки] [теги]"),
+            usage="add-note <назва> [текст] [тег1 тег2 ...]",
             description=(
-                "Додати нотатку "
-                "('-' для пропуску поля, напр.: add-note Заголовок - супер-тег"
-                '. Вміст з пробілом писати у лапках: "Anna Petrenko", '
-                "теги через пробіл - декілька тегів)."
+                "Додати нотатку. "
+                "Назву та текст із пробілами пишіть у лапках. "
+                "Теги можна вводити з символом # або без нього. "
+                "Використовуйте '-' для пропуску поля."
             ),
             category="Notes",
-            example='add-note "Список покупок" "Довгий список покупок" '
-            '"покупки витрати магазин"',
+            example='add-note "Список покупок" "Молоко та хліб" #дім магазин',
         ),
         "add-tag": MutationCommand(
             handler=partial(add_tag, notebook),
@@ -345,5 +447,29 @@ def build_notes_commands(notebook: Notebook) -> dict[str, Command]:
             description="Сортувати нотатки за тегами або показати групи",
             category="Notes",
             example="sort-notes --group",
+        ),
+        "edit-note": MutationCommand(
+            handler=partial(edit_note, notebook),
+            arg_completer=partial(complete_note_title, notebook),
+            usage="edit-note <назва> <новий текст...>",
+            description="Редагувати текст нотатки зі збереженням тегів",
+            category="Notes",
+            example='edit-note "Список покупок" Молоко та хліб',
+        ),
+        "rename-note": MutationCommand(
+            handler=partial(rename_note, notebook),
+            arg_completer=partial(complete_note_title, notebook),
+            usage="rename-note <стара назва> <нова назва>",
+            description="Змінити заголовок нотатки",
+            category="Notes",
+            example='rename-note "Список покупок" "Покупки"',
+        ),
+        "delete-note": MutationCommand(
+            handler=partial(delete_note, notebook),
+            arg_completer=partial(complete_note_title, notebook),
+            usage="delete-note <назва>",
+            description="Видалити нотатку за заголовком",
+            category="Notes",
+            example='delete-note "Список покупок"',
         ),
     }
