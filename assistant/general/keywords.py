@@ -1,3 +1,5 @@
+"""Map general commands to search keywords."""
+
 from assistant.general.command_keys import GeneralCommandKeys
 
 EXIT_KEYWORDS: tuple[str, ...] = (
@@ -87,4 +89,5 @@ GENERAL_KEYWORDS: dict[GeneralCommandKeys, tuple[str, ...]] = {
 
 
 def get_keywords(command: GeneralCommandKeys) -> tuple[str, ...]:
+    """Return keywords for a general command."""
     return GENERAL_KEYWORDS.get(command, ())

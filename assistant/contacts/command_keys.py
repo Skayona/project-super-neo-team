@@ -1,7 +1,11 @@
+"""Define identifiers for contact commands."""
+
 from enum import Enum
 
 
 class ContactCommandKeys(str, Enum):
+    """Identify available contact commands."""
+
     ADD_CONTACT = "add-contact"
     DELETE_CONTACT = "delete-contact"
     FIND_CONTACT = "find-contact"

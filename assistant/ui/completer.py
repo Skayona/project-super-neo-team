@@ -1,3 +1,5 @@
+"""Provide command and argument completion."""
+
 import html
 import shlex
 from collections.abc import Iterable
@@ -22,12 +24,16 @@ def _quote_suggestion(value: str) -> str:
 
 
 class AssistantCompleter(Completer):
+    """Complete command names and their arguments."""
+
     def __init__(self, commands: dict[str, Command]) -> None:
+        """Initialize the completer with available commands."""
         self.commands = commands
 
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
     ) -> Iterable[Completion]:
+        """Yield completions for the current input."""
         text = document.text.lstrip()
         splitter = shlex.shlex(text, posix=True)
         splitter.quotes = '"'
@@ -82,6 +88,7 @@ class AssistantCompleter(Completer):
 def get_bottom_toolbar(
     session: PromptSession[str], commands: dict[str, Command]
 ) -> HTML:
+    """Build the prompt's bottom toolbar."""
     text = session.default_buffer.text.strip()
     if not text:
         return HTML(
@@ -91,7 +98,7 @@ def get_bottom_toolbar(
     cmd_name = text.split()[0].lower()
     cmd = commands.get(cmd_name)
     if cmd:
-        # to avoid HTML reading <імʼя> as HTML tag
+        # Escape usage text so names are not interpreted as HTML tags.
         escaped_usage = html.escape(cmd.usage)
         escaped_desc = html.escape(cmd.description)
         return HTML(
@@ -112,7 +119,7 @@ PROMPT_STYLE = Style.from_dict(
 def init_assistant_completer(
     commands: dict[str, Command],
 ) -> PromptSession[str]:
-
+    """Create a prompt session with command completion."""
     kb = KeyBindings()
 
     @kb.add("enter", filter=has_completions)
