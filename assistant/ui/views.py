@@ -1,12 +1,60 @@
+from collections.abc import Sequence
 from typing import get_args
 
 from rich import box
+from rich.console import Group
 from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 
 from assistant.core.command import Category, Command
 from assistant.core.suggest import similar_cmd
+
+
+def format_welcome(
+    contact_count: int,
+    note_count: int,
+    frequent_commands: Sequence[tuple[str, Command]],
+) -> Panel:
+    content = [
+        Text.assemble(
+            ("Контактів: ", "bold"),
+            (str(contact_count), "cyan"),
+            ("    Нотаток: ", "bold"),
+            (str(note_count), "cyan"),
+        ),
+        Text(""),
+        Text("Популярні команди", style="bold magenta"),
+        Text(""),
+    ]
+
+    for index, (name, command) in enumerate(frequent_commands):
+        content.extend(
+            [
+                Text(name, style="bold cyan"),
+                Text(f"  {command.usage}", style="bold"),
+                Text(f"  {command.description}", style="italic"),
+            ]
+        )
+        if index < len(frequent_commands) - 1:
+            content.append(Text(""))
+
+    content.extend(
+        [
+            Text(""),
+            Text("Введи help, щоб переглянути всі команди.", style="dim"),
+        ]
+    )
+
+    return Panel(
+        Group(*content),
+        title=Text("Бот-помічник вітає тебе!", style="bold white"),
+        title_align="left",
+        box=box.ROUNDED,
+        border_style="cyan",
+        padding=(1, 2),
+    )
 
 
 def format_info(text: str) -> Panel:
@@ -121,6 +169,11 @@ def format_help(commands: dict[str, Command]) -> Table:
     unique = {id(cmd): cmd for _, cmd in sorted(commands.items())}.values()
 
     categories = sorted(get_args(Category), key=lambda c: c != "General")
+    category_labels = {
+        "General": "Загальні",
+        "Contacts": "Контакти",
+        "Notes": "Нотатки",
+    }
 
     first = True
     for category in categories:
@@ -130,7 +183,7 @@ def format_help(commands: dict[str, Command]) -> Table:
         if not first:
             table.add_section()
         first = False
-        table.add_row(f"[bold magenta]{category}[/]", "")
+        table.add_row(f"[bold magenta]{category_labels[category]}[/]", "")
         for cmd in group:
             table.add_row(f"  {escape(cmd.usage)}", escape(cmd.description))
 
