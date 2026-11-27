@@ -2,7 +2,9 @@
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Literal
+
+from rich.console import RenderableType
 
 from assistant.core.command_result import CommandResult
 
@@ -14,7 +16,7 @@ ArgCompleter = Callable[[list[str]], Sequence[str]]
 class Command:
     """Describe a command and its handler."""
 
-    handler: Callable[[list[str]], CommandResult | Any]
+    handler: Callable[[list[str]], CommandResult | RenderableType]
     usage: str
     description: str
     category: Category

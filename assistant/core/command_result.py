@@ -1,12 +1,13 @@
 """Represent command execution results."""
 
 from dataclasses import dataclass
-from typing import Any
+
+from rich.console import RenderableType
 
 
 @dataclass(frozen=True)
 class CommandResult:
     """Return command output and mutation state."""
 
-    output: Any
+    output: RenderableType
     changed: bool = False

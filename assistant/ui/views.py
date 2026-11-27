@@ -18,6 +18,7 @@ def format_welcome(
     contact_count: int,
     note_count: int,
     frequent_commands: Sequence[tuple[str, Command]],
+    help_command: str,
 ) -> Panel:
     """Build the assistant welcome panel."""
     content = [
@@ -46,7 +47,10 @@ def format_welcome(
     content.extend(
         [
             Text(""),
-            Text("Введи help, щоб переглянути всі команди.", style="dim"),
+            Text(
+                f"Введи {help_command}, щоб переглянути всі команди.",
+                style="dim",
+            ),
         ]
     )
 
@@ -141,7 +145,11 @@ def format_table(
     return table
 
 
-def format_command_card(commands: dict[str, Command], name: str) -> Panel:
+def format_command_card(
+    commands: dict[str, Command],
+    name: str,
+    help_command: str,
+) -> Panel:
     """Display usage details for a command."""
     key = name.lower()
     cmd = commands.get(key)
@@ -152,7 +160,9 @@ def format_command_card(commands: dict[str, Command], name: str) -> Panel:
         if similar:
             message += f"\nМожливо, ви мали на увазі: {', '.join(similar)}"
 
-        message += "\nВведіть 'help', щоб побачити всі команди."
+        message += (
+            f"\nВведіть '{help_command}', щоб побачити всі команди."
+        )
 
         return format_error(message)
 

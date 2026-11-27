@@ -23,6 +23,7 @@ from assistant.general import (
 from assistant.general import (
     exit_handler,
 )
+from assistant.general.command_keys import GeneralCommandKeys
 from assistant.notes.command_keys import NotesCommandKeys
 from assistant.notes.handlers_registry import build_notes_commands
 from assistant.ui import (
@@ -101,7 +102,10 @@ def run_loop(
                 )
                 message += f"\nМожливо, ви мали на увазі:\n{usages}\n"
 
-            message += "\nВведіть 'help', щоб побачити всі команди."
+            message += (
+                f"\nВведіть '{GeneralCommandKeys.HELP.value}', "
+                "щоб побачити всі команди."
+            )
             console.print(format_error(message))
 
             # Optional — Execute suggested command
@@ -151,7 +155,10 @@ def run_loop(
         except Exception as err:
             console.print(format_error(f"Непередбачена помилка: {err}"))
 
-        if command_key in ("close", "exit"):
+        if command_key in {
+            GeneralCommandKeys.CLOSE.value,
+            GeneralCommandKeys.EXIT.value,
+        }:
             break
 
 
@@ -164,7 +171,10 @@ def main() -> None:
     commands.update(build_notes_commands(assistant_ctx.notebook))
     commands.update(build_general_commands(assistant_ctx, commands))
 
-    session = init_assistant_completer(commands)
+    session = init_assistant_completer(
+        commands,
+        GeneralCommandKeys.HELP.value,
+    )
 
     frequent_commands = (
         ("Додати контакт", commands[ContactCommandKeys.ADD_CONTACT]),
@@ -180,6 +190,7 @@ def main() -> None:
             len(assistant_ctx.address_book),
             len(assistant_ctx.notebook),
             frequent_commands,
+            GeneralCommandKeys.HELP.value,
         )
     )
 
