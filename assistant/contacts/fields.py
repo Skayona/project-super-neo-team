@@ -67,9 +67,15 @@ class Email(BaseField):
 
     @classmethod
     def validate(cls, value: str) -> None:
-        """Validate the email format and length."""
+        """Validate the email format, length and domain labels."""
         if len(value) > cls.MAX_LENGTH or not cls._PATTERN.fullmatch(value):
             raise EmailValidationError(value)
+
+        domain = value.split("@", 1)[1]
+
+        for label in domain.split("."):
+            if label.startswith("-") or label.endswith("-"):
+                raise EmailValidationError(value)
 
 
 class Birthday(BaseField):
