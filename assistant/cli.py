@@ -13,6 +13,13 @@ from assistant.general_commands import (
     exit_handler,
     parse_input,
 )
+from assistant.notes.notebook import Notebook
+from assistant.notes.notes_commands import (
+    build_add_note_command,
+    build_all_notes_command,
+    build_find_note_command,
+    build_show_note_command,
+)
 from assistant.notes.sort_commands import build_sort_notes_command
 from assistant.notes.tag_commands import build_tag_commands
 from assistant.ui.completer import init_assistant_completer
@@ -119,8 +126,24 @@ def main() -> None:
 
     commands: dict[str, Command] = {}
     commands.update(build_contacts_commands(assistant_ctx.address_book))
+
+    notebook = assistant_ctx.notebook
+    if notebook is None:
+        try:
+            notebook = load_notebook()
+        except AssistantError as err:
+            console.print(format_error(err.message))
+            notebook = Notebook()
+        else:
+            assistant_ctx.notebook = notebook
+    commands["add-note"] = build_add_note_command(notebook)
+    commands["show-note"] = build_show_note_command(notebook)
+    commands["all-notes"] = build_all_notes_command(notebook)
+    commands["find-note"] = build_find_note_command(notebook)
+
     commands.update(build_tag_commands(assistant_ctx.notebook))
     commands["sort-notes"] = build_sort_notes_command(assistant_ctx.notebook)
+
 
     # TODO(notes): register the Notes commands below, e.g.
     # commands.update(build_notes_commands(assistant_ctx.notebook))
