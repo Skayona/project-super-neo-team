@@ -4,9 +4,13 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Any
 
+from rich.console import Console
+
 from assistant.contacts.address_book import AddressBook
 from assistant.core.exceptions import AssistantError
 from assistant.notes.notebook import Notebook
+
+_console = Console()
 
 STORAGE_DIR = Path.home() / "assistant_storage"
 CONTACTS_FILE = STORAGE_DIR / "address_book.json"
@@ -40,12 +44,16 @@ def load_notebook(file_path: Path = NOTES_FILE) -> Notebook:
         return Notebook.from_dict(load_json(file_path))
     except FileNotFoundError:
         return Notebook()
-    except (
-        ValueError, OSError, KeyError, TypeError, AssistantError
-    ) as error:
-        raise AssistantError(
-            "Не вдалося прочитати файл нотаток."
-        ) from error
+    except (OSError, ValueError, KeyError, TypeError, AssistantError):
+        from assistant.ui.views import format_warn
+
+        _console.print(
+            format_warn(
+                "Файл нотаток пошкоджено або недоступний. "
+                "Завантажено порожній нотатник."
+            )
+        )
+        return Notebook()
 
 
 def save_json(data: object, file_path: Path) -> None:
