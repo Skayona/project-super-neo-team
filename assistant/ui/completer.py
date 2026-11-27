@@ -1,4 +1,5 @@
 import html
+import shlex
 from collections.abc import Iterable
 
 from prompt_toolkit import HTML, PromptSession
@@ -12,6 +13,14 @@ from prompt_toolkit.styles import Style
 from assistant.core.command import Command
 
 
+def _quote_suggestion(value: str) -> str:
+    if not any(char.isspace() or char in {'"', "\\"} for char in value):
+        return value
+
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
 class AssistantCompleter(Completer):
     def __init__(self, commands: dict[str, Command]) -> None:
         self.commands = commands
@@ -20,7 +29,15 @@ class AssistantCompleter(Completer):
         self, document: Document, complete_event: CompleteEvent
     ) -> Iterable[Completion]:
         text = document.text.lstrip()
-        words = text.split()
+        splitter = shlex.shlex(text, posix=True)
+        splitter.quotes = '"'
+        splitter.whitespace_split = True
+        splitter.commenters = ""
+        try:
+            words = list(splitter)
+        except ValueError:
+            return
+
         ends_with_space = text.endswith(" ")
 
         if len(words) == 0 or (len(words) == 1 and not ends_with_space):
@@ -56,7 +73,7 @@ class AssistantCompleter(Completer):
         for item in suggestions:
             if item.lower().startswith(current_prefix.lower()):
                 yield Completion(
-                    text=item,
+                    text=_quote_suggestion(item),
                     start_position=-len(current_prefix),
                     display=item,
                 )

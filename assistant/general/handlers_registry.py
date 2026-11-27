@@ -25,7 +25,7 @@ def help_handler(
 
 def exit_handler(ctx: AssistantContext, *_: Any) -> Panel:
     ctx.save_all()
-    return format_info("Бувай!")
+    return format_info("Всі записи збережно. До зустрічі!")
 
 
 def build_commands(

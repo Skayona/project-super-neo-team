@@ -9,6 +9,7 @@ from assistant.ui.views import (
     format_success,
     format_table,
     format_warn,
+    format_welcome,
 )
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "format_table",
     "format_help",
     "format_warn",
+    "format_welcome",
 ]

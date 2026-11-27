@@ -104,7 +104,7 @@ def show_all_contacts(book: AddressBook, args: list[str]) -> Table | Panel:
 def render_contacts_table(
     records: Iterable[Record], title: str
 ) -> Table | Panel:
-    headers = ["Імʼя", "Дата народження", "Телефон(и)", "Адреса", "Пошта"]
+    headers = ["Імʼя", "Дата народження", "Телефон(и)", "Адреса", "Email"]
     rows = []
     for record in records:
         record_dict = record.to_dict()
@@ -147,7 +147,7 @@ def change_phone(book: AddressBook, args: list[str]) -> Panel:
     name, old_phone, new_phone, *_ = args
     record = get_record(book, name)
     record.edit_phone(old_phone, new_phone)
-    return format_success("Phone updated.")
+    return format_success("Номер телефону оновлено.")
 
 
 @input_error
@@ -155,7 +155,7 @@ def delete_phone(book: AddressBook, args: list[str]) -> Panel:
     name, phone, *_ = args
     record = get_record(book, name)
     record.delete_phone(phone)
-    return format_success("Phone deleted.")
+    return format_success("Номер телефону видалено.")
 
 
 @input_error
@@ -163,7 +163,7 @@ def add_birthday(book: AddressBook, args: list[str]) -> Panel:
     name, date, *_ = args
     record = get_record(book, name)
     record.add_birthday(date)
-    return format_success("Birthday added.")
+    return format_success("День народження додано.")
 
 
 @input_error

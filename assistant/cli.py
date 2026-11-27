@@ -1,9 +1,11 @@
 import shlex
+from enum import Enum
 
 from prompt_toolkit import PromptSession
 from rich.console import Console
 
 from assistant.contacts import build_commands as build_contacts_commands
+from assistant.contacts.command_keys import ContactCommandKeys
 from assistant.context import AssistantContext
 from assistant.core import (
     AssistantError,
@@ -19,8 +21,13 @@ from assistant.general import (
 from assistant.general import (
     exit_handler,
 )
+from assistant.notes.command_keys import NotesCommandKeys
 from assistant.notes.handlers_registry import build_notes_commands
-from assistant.ui import format_error, format_info, init_assistant_completer
+from assistant.ui import (
+    format_error,
+    format_welcome,
+    init_assistant_completer,
+)
 
 console = Console()
 
@@ -98,11 +105,16 @@ def run_loop(
                 continue
 
             suggested_key = similar[0]
+            suggested_command = (
+                str(suggested_key.value)
+                if isinstance(suggested_key, Enum)
+                else suggested_key
+            )
 
             try:
                 confirmation = (
                     session.prompt(
-                        f"Виконати {suggested_key} "
+                        f"Виконати {suggested_command} "
                         "з тими ж аргументами? (y/n): "
                     )
                     .strip()
@@ -114,8 +126,7 @@ def run_loop(
             if confirmation != "y":
                 continue
 
-            command_key = suggested_key
-            command = commands[command_key]
+            command = commands[suggested_command]
 
         try:
             result = command.handler(args)
@@ -150,7 +161,22 @@ def main() -> None:
 
     session = init_assistant_completer(commands)
 
-    console.print(format_info("Welcome to the assistant bot!"))
+    frequent_commands = (
+        ("Додати контакт", commands[ContactCommandKeys.ADD_CONTACT]),
+        ("Знайти контакт", commands[ContactCommandKeys.FIND_CONTACT]),
+        ("Усі контакти", commands[ContactCommandKeys.SHOW_ALL_CONTACTS]),
+        ("Додати нотатку", commands[NotesCommandKeys.ADD_NOTE]),
+        ("Усі нотатки", commands[NotesCommandKeys.ALL_NOTES]),
+        ("Знайти нотатку", commands[NotesCommandKeys.FIND_NOTE]),
+    )
+
+    console.print(
+        format_welcome(
+            len(assistant_ctx.address_book),
+            len(assistant_ctx.notebook),
+            frequent_commands,
+        )
+    )
 
     try:
         run_loop(assistant_ctx, commands, session)
