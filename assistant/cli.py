@@ -1,23 +1,52 @@
+import shlex
+
 from prompt_toolkit import PromptSession
 from rich.console import Console
-from rich.markup import escape
 
-from assistant.contacts.handlers_registry import build_contacts_commands
-from assistant.context.context import AssistantContext
-from assistant.core.command import Command
-from assistant.core.command_result import CommandResult
-from assistant.core.exceptions import AssistantError, UsageError
-from assistant.core.suggest import keyword_match, similar_cmd
-from assistant.general_commands import (
-    build_general_commands,
+from assistant.contacts import build_commands as build_contacts_commands
+from assistant.context import AssistantContext
+from assistant.core import (
+    AssistantError,
+    Command,
+    CommandResult,
+    UsageError,
+    keyword_match,
+    similar_cmd,
+)
+from assistant.general import (
+    build_commands as build_general_commands,
+)
+from assistant.general import (
     exit_handler,
-    parse_input,
 )
 from assistant.notes.handlers_registry import build_notes_commands
-from assistant.ui.completer import init_assistant_completer
-from assistant.ui.views import format_error, format_info
+from assistant.ui import format_error, format_info, init_assistant_completer
 
 console = Console()
+
+
+def parse_input(user_input: str) -> tuple[str, list[str]]:
+    if not user_input or not user_input.strip():
+        return "", []
+
+    user_input = user_input.strip()
+    splitter = shlex.shlex(user_input, posix=True)
+    splitter.quotes = '"'  # Зберігаємо апострофи в назвах
+    splitter.whitespace_split = True
+    splitter.commenters = ""
+
+    try:
+        splitted_input = list(splitter)
+    except ValueError:
+        raise UsageError("Незакрита лапка у команді.") from None
+
+    if not splitted_input:
+        return "", []
+
+    cmd, *args = splitted_input
+    cmd = cmd.lower()
+
+    return cmd, args
 
 
 def run_loop(
@@ -49,7 +78,7 @@ def run_loop(
             typo_matches = bool(similar)
 
             if not similar:
-                similar = keyword_match(user_input, commands.keys())
+                similar = keyword_match(user_input, commands)
 
             if similar:
                 usages = "\n".join(
@@ -100,9 +129,7 @@ def run_loop(
 
         except UsageError as err:
             console.print(
-                format_error(
-                    f"{err.message} Використання: {escape(command.usage)}"
-                )
+                format_error(f"{err.message} Використання: {command.usage}")
             )
         except AssistantError as err:
             console.print(format_error(err.message))

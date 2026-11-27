@@ -17,6 +17,7 @@ class Command:
     arg_completer: ArgCompleter | None = None
     example: str = ""
     mutates: bool = False
+    keywords: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

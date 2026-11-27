@@ -6,17 +6,20 @@ from rich.console import Group
 from rich.panel import Panel
 from rich.table import Table
 
-from assistant.core.command import Command, MutationCommand
-from assistant.core.command_result import CommandResult
-from assistant.core.exceptions import (
+from assistant.core import (
+    Command,
+    CommandResult,
+    MutationCommand,
     NoteNotFoundError,
     UsageError,
+    input_error,
 )
-from assistant.core.input_error_decorator import input_error
+from assistant.notes.command_keys import NotesCommandKeys
 from assistant.notes.fields import NoteTag
+from assistant.notes.keywords import get_keywords
 from assistant.notes.note import Note
 from assistant.notes.notebook import Notebook
-from assistant.ui.views import (
+from assistant.ui import (
     format_card,
     format_error,
     format_info,
@@ -137,7 +140,10 @@ def all_notes(notebook: Notebook, args: list[str]) -> CommandResult:
 
     if not notebook:
         return CommandResult(
-            format_info("Нотаток ще немає. Додайте: add-note ..."),
+            format_info(
+                "Нотаток ще немає. Додайте: "
+                f"{NotesCommandKeys.ADD_NOTE.value} ..."
+            ),
             changed=False,
         )
 
@@ -375,9 +381,12 @@ def sort_notes(notebook: Notebook, args: list[str]) -> Table | Panel | Group:
 
 def build_notes_commands(notebook: Notebook) -> dict[str, Command]:
     return {
-        "add-note": MutationCommand(
+        NotesCommandKeys.ADD_NOTE: MutationCommand(
             handler=partial(add_note, notebook),
-            usage="add-note <назва> [текст] [тег1 тег2 ...]",
+            usage=(
+                f"{NotesCommandKeys.ADD_NOTE.value} "
+                "<назва> [текст] [тег1 тег2 ...]"
+            ),
             description=(
                 "Додати нотатку. "
                 "Назву та текст із пробілами пишіть у лапках. "
@@ -385,91 +394,123 @@ def build_notes_commands(notebook: Notebook) -> dict[str, Command]:
                 "Використовуйте '-' для пропуску поля."
             ),
             category="Notes",
-            example='add-note "Список покупок" "Молоко та хліб" #дім магазин',
+            example=(
+                f"{NotesCommandKeys.ADD_NOTE.value} "
+                '"Список покупок" "Молоко та хліб" #дім магазин'
+            ),
+            keywords=get_keywords(NotesCommandKeys.ADD_NOTE),
         ),
-        "add-tag": MutationCommand(
+        NotesCommandKeys.ADD_TAG: MutationCommand(
             handler=partial(add_tag, notebook),
             arg_completer=partial(complete_note_title, notebook),
-            usage="add-tag <назва> <тег1> [тег2 ...]",
+            usage=(
+                f"{NotesCommandKeys.ADD_TAG.value} <назва> <тег1> [тег2 ...]"
+            ),
             description="Додати нотатці один або кілька тегів",
             category="Notes",
-            example="add-tag Покупки дім терміново",
+            example=(
+                f"{NotesCommandKeys.ADD_TAG.value} Покупки дім терміново"
+            ),
+            keywords=get_keywords(NotesCommandKeys.ADD_TAG),
         ),
-        "remove-tag": MutationCommand(
+        NotesCommandKeys.REMOVE_TAG: MutationCommand(
             handler=partial(remove_tag, notebook),
             arg_completer=partial(complete_note_tag, notebook),
-            usage="remove-tag <назва> <тег>",
+            usage=f"{NotesCommandKeys.REMOVE_TAG.value} <назва> <тег>",
             description="Видалити тег із нотатки",
             category="Notes",
-            example="remove-tag Покупки терміново",
+            example=(f"{NotesCommandKeys.REMOVE_TAG.value} Покупки терміново"),
+            keywords=get_keywords(NotesCommandKeys.REMOVE_TAG),
         ),
-        "find-tag": Command(
+        NotesCommandKeys.FIND_TAG: Command(
             handler=partial(find_tag, notebook),
             arg_completer=partial(complete_tags, notebook),
-            usage="find-tag <тег1> [тег2 ...] [--all]",
+            usage=(
+                f"{NotesCommandKeys.FIND_TAG.value} <тег1> [тег2 ...] [--all]"
+            ),
             description=(
                 "Знайти нотатки з будь-яким із тегів (--all — з усіма)"
             ),
             category="Notes",
-            example="find-tag дім робота --all",
+            example=f"{NotesCommandKeys.FIND_TAG.value} дім робота --all",
+            keywords=get_keywords(NotesCommandKeys.FIND_TAG),
         ),
-        "all-tags": Command(
+        NotesCommandKeys.ALL_TAGS: Command(
             handler=partial(all_tags, notebook),
-            usage="all-tags",
+            usage=NotesCommandKeys.ALL_TAGS.value,
             description="Показати всі теги та кількість нотаток з ними",
             category="Notes",
+            keywords=get_keywords(NotesCommandKeys.ALL_TAGS),
         ),
-        "show-note": Command(
+        NotesCommandKeys.SHOW_NOTE: Command(
             handler=partial(show_note, notebook),
             arg_completer=partial(complete_note_title, notebook),
-            usage="show-note <назва>",
+            usage=f"{NotesCommandKeys.SHOW_NOTE.value} <назва>",
             description="Показати нотатку",
             category="Notes",
-            example='show-note "Список покупок"',
+            example=f'{NotesCommandKeys.SHOW_NOTE.value} "Список покупок"',
+            keywords=get_keywords(NotesCommandKeys.SHOW_NOTE),
         ),
-        "all-notes": Command(
+        NotesCommandKeys.ALL_NOTES: Command(
             handler=partial(all_notes, notebook),
-            usage="all-notes",
+            usage=NotesCommandKeys.ALL_NOTES.value,
             description="Показати всі нотатки",
             category="Notes",
-            example="all-notes",
+            example=NotesCommandKeys.ALL_NOTES.value,
+            keywords=get_keywords(NotesCommandKeys.ALL_NOTES),
         ),
-        "find-note": Command(
+        NotesCommandKeys.FIND_NOTE: Command(
             handler=partial(find_note, notebook),
-            usage="find-note <запит>",
+            usage=f"{NotesCommandKeys.FIND_NOTE.value} <запит>",
             description="Знайти нотатки за назвою, текстом або тегами",
             category="Notes",
-            example="find-note молоко",
+            example=f"{NotesCommandKeys.FIND_NOTE.value} молоко",
+            keywords=get_keywords(NotesCommandKeys.FIND_NOTE),
         ),
-        "sort-notes": Command(
+        NotesCommandKeys.SORT_NOTES: Command(
             handler=partial(sort_notes, notebook),
-            usage="sort-notes [--group]",
+            usage=f"{NotesCommandKeys.SORT_NOTES.value} [--group]",
             description="Сортувати нотатки за тегами або показати групи",
             category="Notes",
-            example="sort-notes --group",
+            example=f"{NotesCommandKeys.SORT_NOTES.value} --group",
+            keywords=get_keywords(NotesCommandKeys.SORT_NOTES),
         ),
-        "edit-note": MutationCommand(
+        NotesCommandKeys.EDIT_NOTE: MutationCommand(
             handler=partial(edit_note, notebook),
             arg_completer=partial(complete_note_title, notebook),
-            usage="edit-note <назва> <новий текст...>",
+            usage=(
+                f"{NotesCommandKeys.EDIT_NOTE.value} <назва> <новий текст...>"
+            ),
             description="Редагувати текст нотатки зі збереженням тегів",
             category="Notes",
-            example='edit-note "Список покупок" Молоко та хліб',
+            example=(
+                f"{NotesCommandKeys.EDIT_NOTE.value} "
+                '"Список покупок" Молоко та хліб'
+            ),
+            keywords=get_keywords(NotesCommandKeys.EDIT_NOTE),
         ),
-        "rename-note": MutationCommand(
+        NotesCommandKeys.RENAME_NOTE: MutationCommand(
             handler=partial(rename_note, notebook),
             arg_completer=partial(complete_note_title, notebook),
-            usage="rename-note <стара назва> <нова назва>",
+            usage=(
+                f"{NotesCommandKeys.RENAME_NOTE.value} "
+                "<стара назва> <нова назва>"
+            ),
             description="Змінити заголовок нотатки",
             category="Notes",
-            example='rename-note "Список покупок" "Покупки"',
+            example=(
+                f"{NotesCommandKeys.RENAME_NOTE.value} "
+                '"Список покупок" "Покупки"'
+            ),
+            keywords=get_keywords(NotesCommandKeys.RENAME_NOTE),
         ),
-        "delete-note": MutationCommand(
+        NotesCommandKeys.DELETE_NOTE: MutationCommand(
             handler=partial(delete_note, notebook),
             arg_completer=partial(complete_note_title, notebook),
-            usage="delete-note <назва>",
+            usage=f"{NotesCommandKeys.DELETE_NOTE.value} <назва>",
             description="Видалити нотатку за заголовком",
             category="Notes",
-            example='delete-note "Список покупок"',
+            example=f'{NotesCommandKeys.DELETE_NOTE.value} "Список покупок"',
+            keywords=get_keywords(NotesCommandKeys.DELETE_NOTE),
         ),
     }
