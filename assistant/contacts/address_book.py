@@ -1,3 +1,5 @@
+"""Store and search contact records."""
+
 import re
 from collections import UserDict
 from dataclasses import dataclass
@@ -20,6 +22,8 @@ console = Console()
 
 @dataclass(frozen=True)
 class UpcomingBirthday:
+    """Represent an upcoming birthday and its reminder date."""
+
     name: str
     birthday: date
     days_left: int
@@ -28,7 +32,10 @@ class UpcomingBirthday:
 
 
 class AddressBook(UserDict[str, Record]):
+    """Store and search contact records."""
+
     def add_record(self, record: Record) -> None:
+        """Add a contact record."""
         name = record.name.value
         if self.find(name) is not None:
             raise ContactExistsError(name)
@@ -36,6 +43,7 @@ class AddressBook(UserDict[str, Record]):
         self.data[name] = record
 
     def find(self, name: str) -> Record | None:
+        """Find a contact by name."""
         needle = name.strip().casefold()
         return next(
             (
@@ -47,6 +55,7 @@ class AddressBook(UserDict[str, Record]):
         )
 
     def search(self, query: str) -> list[Record]:
+        """Search contact details for a query."""
         query = query.strip().casefold()
         if not query:
             return []
@@ -76,15 +85,18 @@ class AddressBook(UserDict[str, Record]):
         return matches
 
     def delete(self, name: str) -> None:
+        """Delete a contact by name."""
         record = self.find(name)
         if record is None:
             raise ContactNotFoundError(name)
         del self.data[record.name.value]
 
     def to_dict(self) -> dict[str, dict[str, str]]:
+        """Serialize all contact records."""
         return {name: record.to_dict() for name, record in self.data.items()}
 
     def get_upcoming_birthdays(self, days: int = 7) -> list[UpcomingBirthday]:
+        """List birthdays due within the given number of days."""
         if not 1 <= days <= 365:
             raise UsageError("Кількість днів — ціле число від 1 до 365")
 
@@ -128,6 +140,7 @@ class AddressBook(UserDict[str, Record]):
 
     @staticmethod
     def print_unpack_book_error() -> None:
+        """Display a warning about invalid address-book data."""
         console.print(
             format_warn(
                 "Файл адресної книги пошкоджено або недоступний. "
@@ -137,6 +150,7 @@ class AddressBook(UserDict[str, Record]):
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "AddressBook":
+        """Build an address book from serialized records."""
         book = AddressBook()
         if not isinstance(data, dict):
             AddressBook.print_unpack_book_error()

@@ -1,3 +1,5 @@
+"""Represent a note with tags and timestamps."""
+
 from collections.abc import Iterable
 from datetime import datetime
 from typing import Any
@@ -13,6 +15,8 @@ def _now() -> datetime:
 
 
 class Note:
+    """Store note content, tags, and timestamps."""
+
     def __init__(
         self,
         title: str,
@@ -21,6 +25,7 @@ class Note:
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
     ):
+        """Initialize a note."""
         self.title = NoteTitle(title)
         self.content = NoteContent(content)
         self.tags: set[NoteTag] = {NoteTag(tag) for tag in tags}
@@ -28,12 +33,14 @@ class Note:
         self.updated_at = updated_at or self.created_at
 
     def add_tags(self, *tags: str) -> None:
+        """Add tags to the note."""
         new_tags = {NoteTag(tag) for tag in tags}
         if not new_tags <= self.tags:
             self.tags |= new_tags
             self._touch()
 
     def remove_tag(self, tag: str) -> None:
+        """Remove a tag from the note."""
         target = NoteTag(tag)
         if target not in self.tags:
             raise NotFoundError(
@@ -43,6 +50,7 @@ class Note:
         self._touch()
 
     def edit_content(self, text: str) -> None:
+        """Replace the note content."""
         self.content = NoteContent(text)
         self._touch()
 
@@ -51,13 +59,16 @@ class Note:
 
     @property
     def created_at_display(self) -> str:
+        """Return the creation time for display."""
         return self.created_at.strftime(DISPLAY_FORMAT)
 
     @property
     def updated_at_display(self) -> str:
+        """Return the update time for display."""
         return self.updated_at.strftime(DISPLAY_FORMAT)
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the note."""
         return {
             "title": self.title.value,
             "content": self.content.value,
@@ -68,6 +79,7 @@ class Note:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Note":
+        """Build a note from serialized data."""
         return cls(
             title=data["title"],
             content=data.get("content", ""),
@@ -77,11 +89,13 @@ class Note:
         )
 
     def __eq__(self, other: object) -> bool:
+        """Compare notes by their serialized data."""
         if not isinstance(other, Note):
             return NotImplemented
         return self.to_dict() == other.to_dict()
 
     def __str__(self) -> str:
+        """Format the note for display."""
         tags = ", ".join(
             f"#{tag}" for tag in sorted(t.value for t in self.tags)
         )

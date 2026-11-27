@@ -1,3 +1,5 @@
+"""Define handlers for contact commands."""
+
 from collections.abc import Iterable
 from functools import partial
 
@@ -26,6 +28,7 @@ from assistant.ui.views import (
 
 
 def get_record(book: AddressBook, name: str) -> Record:
+    """Return a contact or raise when it is missing."""
     record = book.find(name)
     if record is None:
         raise ContactNotFoundError(name)
@@ -34,6 +37,7 @@ def get_record(book: AddressBook, name: str) -> Record:
 
 # Validates all fields first; modifies record only if everything is valid.
 def add_contact_info(record: Record, args: list[str]) -> None:
+    """Add validated details to a contact."""
     phone = args[0] if len(args) > 0 and args[0] != "-" else None
     email = args[1] if len(args) > 1 and args[1] != "-" else None
     birthday = args[2] if len(args) > 2 and args[2] != "-" else None
@@ -59,6 +63,7 @@ def add_contact_info(record: Record, args: list[str]) -> None:
 
 @input_error
 def add_contact(book: AddressBook, args: list[str]) -> Panel:
+    """Add a contact or update an existing one."""
     name, *rest = args
     record = book.find(name)
     message = f"Контакт «{name}» оновлено."
@@ -76,6 +81,7 @@ def add_contact(book: AddressBook, args: list[str]) -> Panel:
 
 @input_error
 def delete_contact(book: AddressBook, args: list[str]) -> Panel:
+    """Delete a contact."""
     name, *_ = args
     book.delete(name)
     return format_success(f"Контакт {name} видалено.")
@@ -83,6 +89,7 @@ def delete_contact(book: AddressBook, args: list[str]) -> Panel:
 
 @input_error
 def find_contact(book: AddressBook, args: list[str]) -> Table | Panel:
+    """Find contacts matching a query."""
     query = " ".join(args).strip()
     if not query:
         raise UsageError(
@@ -96,6 +103,7 @@ def find_contact(book: AddressBook, args: list[str]) -> Table | Panel:
 
 
 def show_all_contacts(book: AddressBook, args: list[str]) -> Table | Panel:
+    """Display all contacts."""
     if args:
         raise UsageError("Команда не приймає аргументів.")
     return render_contacts_table(book.values(), "Список усіх контактів")
@@ -104,6 +112,7 @@ def show_all_contacts(book: AddressBook, args: list[str]) -> Table | Panel:
 def render_contacts_table(
     records: Iterable[Record], title: str
 ) -> Table | Panel:
+    """Render contact records as a table."""
     headers = ["Імʼя", "Дата народження", "Телефон(и)", "Адреса", "Email"]
     rows = []
     for record in records:
@@ -122,6 +131,7 @@ def render_contacts_table(
 
 @input_error
 def add_phone(book: AddressBook, args: list[str]) -> Panel:
+    """Add a phone number to a contact."""
     name, phone, *_ = args
     record = get_record(book, name)
     record.add_phone(phone)
@@ -130,6 +140,7 @@ def add_phone(book: AddressBook, args: list[str]) -> Panel:
 
 @input_error
 def show_phone(book: AddressBook, args: list[str]) -> Panel:
+    """Display a contact's phone numbers."""
     if len(args) != 1:
         raise UsageError(
             "Вкажіть одне ім'я контакту (у лапках, якщо з пробілом)."
@@ -144,6 +155,7 @@ def show_phone(book: AddressBook, args: list[str]) -> Panel:
 
 @input_error
 def change_phone(book: AddressBook, args: list[str]) -> Panel:
+    """Replace a contact's phone number."""
     name, old_phone, new_phone, *_ = args
     record = get_record(book, name)
     record.edit_phone(old_phone, new_phone)
@@ -152,6 +164,7 @@ def change_phone(book: AddressBook, args: list[str]) -> Panel:
 
 @input_error
 def delete_phone(book: AddressBook, args: list[str]) -> Panel:
+    """Delete a contact's phone number."""
     name, phone, *_ = args
     record = get_record(book, name)
     record.delete_phone(phone)
@@ -160,6 +173,7 @@ def delete_phone(book: AddressBook, args: list[str]) -> Panel:
 
 @input_error
 def add_birthday(book: AddressBook, args: list[str]) -> Panel:
+    """Set a contact's birthday."""
     name, date, *_ = args
     record = get_record(book, name)
     record.add_birthday(date)
@@ -168,6 +182,7 @@ def add_birthday(book: AddressBook, args: list[str]) -> Panel:
 
 @input_error
 def show_birthday(book: AddressBook, args: list[str]) -> Panel | str:
+    """Display a contact's birthday."""
     name, *_ = args
     record = get_record(book, name)
     if record.birthday is None:
@@ -177,6 +192,7 @@ def show_birthday(book: AddressBook, args: list[str]) -> Panel | str:
 
 @input_error
 def change_birthday(book: AddressBook, args: list[str]) -> Panel:
+    """Replace a contact's birthday."""
     name = args[0]
     date = args[1]
     record = get_record(book, name)
@@ -186,6 +202,7 @@ def change_birthday(book: AddressBook, args: list[str]) -> Panel:
 
 @input_error
 def delete_birthday(book: AddressBook, args: list[str]) -> Panel:
+    """Remove a contact's birthday."""
     name = args[0]
     record = get_record(book, name)
     record.delete_birthday()
@@ -196,6 +213,7 @@ def delete_birthday(book: AddressBook, args: list[str]) -> Panel:
 def upcoming_birthdays(
     book: AddressBook, args: list[str] | None = None
 ) -> Table | Panel:
+    """Display birthdays coming up within the selected period."""
     days = 7
     integer_error_message = "Кількість днів має бути цілим числом."
     if args:
@@ -241,6 +259,7 @@ def upcoming_birthdays(
 
 @input_error
 def add_email(book: AddressBook, args: list[str]) -> Panel:
+    """Add an email address to a contact."""
     name, email, *_ = args
     record = get_record(book, name)
     if record.email is not None:
@@ -255,6 +274,7 @@ def add_email(book: AddressBook, args: list[str]) -> Panel:
 
 @input_error
 def change_email(book: AddressBook, args: list[str]) -> Panel:
+    """Replace a contact's email address."""
     name, email, *_ = args
     record = get_record(book, name)
     record.edit_email(email)
@@ -263,6 +283,7 @@ def change_email(book: AddressBook, args: list[str]) -> Panel:
 
 @input_error
 def delete_email(book: AddressBook, args: list[str]) -> Panel:
+    """Remove a contact's email address."""
     name, *_ = args
     record = get_record(book, name)
     record.delete_email()
@@ -270,6 +291,7 @@ def delete_email(book: AddressBook, args: list[str]) -> Panel:
 
 
 def parse_name_and_address(args: list[str]) -> tuple[str, str]:
+    """Parse a contact name and address from arguments."""
     name, *rest = args
     if not rest:
         raise UsageError("Недостатньо аргументів.")
@@ -278,6 +300,7 @@ def parse_name_and_address(args: list[str]) -> tuple[str, str]:
 
 @input_error
 def add_address(book: AddressBook, args: list[str]) -> Panel:
+    """Add an address to a contact."""
     name, address = parse_name_and_address(args)
     record = get_record(book, name)
     if record.address is not None:
@@ -292,6 +315,7 @@ def add_address(book: AddressBook, args: list[str]) -> Panel:
 
 @input_error
 def change_address(book: AddressBook, args: list[str]) -> Panel:
+    """Replace a contact's address."""
     name, address = parse_name_and_address(args)
     record = get_record(book, name)
     record.edit_address(address)
@@ -300,6 +324,7 @@ def change_address(book: AddressBook, args: list[str]) -> Panel:
 
 @input_error
 def delete_address(book: AddressBook, args: list[str]) -> Panel:
+    """Remove a contact's address."""
     name, *_ = args
     record = get_record(book, name)
     record.delete_address()
@@ -310,12 +335,14 @@ def delete_address(book: AddressBook, args: list[str]) -> Panel:
 
 
 def complete_contact_name(book: AddressBook, args: list[str]) -> list[str]:
+    """Suggest contact names for command input."""
     if len(args) == 0:
         return sorted(book.data.keys())
     return []
 
 
 def complete_name_and_phone(book: AddressBook, args: list[str]) -> list[str]:
+    """Suggest contact names or their phone numbers."""
     if len(args) == 0:
         return sorted(book.data.keys())
 
@@ -328,6 +355,7 @@ def complete_name_and_phone(book: AddressBook, args: list[str]) -> list[str]:
 
 
 def build_commands(book: AddressBook) -> dict[str, Command]:
+    """Build the contact command definitions."""
     return {
         ContactCommandKeys.ADD_CONTACT: MutationCommand(
             handler=partial(add_contact, book),

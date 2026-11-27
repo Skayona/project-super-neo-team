@@ -1,7 +1,11 @@
+"""Define identifiers for note commands."""
+
 from enum import Enum
 
 
 class NotesCommandKeys(str, Enum):
+    """Identify available note commands."""
+
     ADD_NOTE = "add-note"
     ADD_TAG = "add-tag"
     REMOVE_TAG = "remove-tag"

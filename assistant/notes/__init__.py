@@ -1,3 +1,5 @@
+"""Expose note models, fields, and collections."""
+
 from assistant.notes.fields import NoteContent, NoteTag, NoteTitle
 from assistant.notes.note import Note
 from assistant.notes.notebook import Notebook

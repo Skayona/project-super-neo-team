@@ -1,3 +1,5 @@
+"""Persist contacts and notes as JSON."""
+
 import json
 import os
 from pathlib import Path
@@ -20,10 +22,12 @@ NOTES_FILE = STORAGE_DIR / "notebook.json"
 def save_address_book(
     book: AddressBook, file_path: Path = CONTACTS_FILE
 ) -> None:
+    """Save the address book as JSON."""
     save_json(book.to_dict(), file_path)
 
 
 def load_address_book(file_path: Path = CONTACTS_FILE) -> AddressBook:
+    """Load the address book from JSON."""
     try:
         return AddressBook.from_dict(load_json(file_path))
     except FileNotFoundError:
@@ -36,10 +40,12 @@ def load_address_book(file_path: Path = CONTACTS_FILE) -> AddressBook:
 def save_notebook(
     notebook: Notebook, file_path: Path = NOTES_FILE
 ) -> None:
+    """Save the notebook as JSON."""
     save_json(notebook.to_dict(), file_path)
 
 
 def load_notebook(file_path: Path = NOTES_FILE) -> Notebook:
+    """Load the notebook from JSON."""
     try:
         return Notebook.from_dict(load_json(file_path))
     except FileNotFoundError:
@@ -57,6 +63,7 @@ def load_notebook(file_path: Path = NOTES_FILE) -> Notebook:
 
 
 def save_json(data: object, file_path: Path) -> None:
+    """Write JSON data to a file atomically."""
     file_path.parent.mkdir(parents=True, exist_ok=True)
     handle = NamedTemporaryFile(
         mode="w", encoding="utf-8", dir=file_path.parent, delete=False
@@ -71,6 +78,7 @@ def save_json(data: object, file_path: Path) -> None:
 
 
 def load_json(file_path: Path) -> dict[str, Any]:
+    """Load a JSON object from a file."""
     with file_path.open(encoding="utf-8") as handle:
         data = json.load(handle)
     if not isinstance(data, dict):

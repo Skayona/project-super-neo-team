@@ -1,3 +1,5 @@
+"""Parse commands and run the assistant CLI."""
+
 import shlex
 from enum import Enum
 
@@ -33,12 +35,13 @@ console = Console()
 
 
 def parse_input(user_input: str) -> tuple[str, list[str]]:
+    """Parse a command line into its key and arguments."""
     if not user_input or not user_input.strip():
         return "", []
 
     user_input = user_input.strip()
     splitter = shlex.shlex(user_input, posix=True)
-    splitter.quotes = '"'  # Зберігаємо апострофи в назвах
+    splitter.quotes = '"'  # Preserve apostrophes in names.
     splitter.whitespace_split = True
     splitter.commenters = ""
 
@@ -61,6 +64,7 @@ def run_loop(
     commands: dict[str, Command],
     session: PromptSession,
 ) -> None:
+    """Prompt for and execute commands."""
     while True:
         try:
             user_input = session.prompt("Введіть команду: ")
@@ -152,6 +156,7 @@ def run_loop(
 
 
 def main() -> None:
+    """Start the assistant CLI."""
     assistant_ctx = AssistantContext.load()
 
     commands: dict[str, Command] = {}

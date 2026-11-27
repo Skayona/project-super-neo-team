@@ -1,3 +1,5 @@
+"""Map contact commands to search keywords."""
+
 from assistant.contacts.command_keys import ContactCommandKeys
 
 ADD_CONTACT_KEYWORDS: tuple[str, ...] = (
@@ -500,4 +502,5 @@ CONTACTS_KEYWORDS: dict[ContactCommandKeys, tuple[str, ...]] = {
 
 
 def get_keywords(command: ContactCommandKeys) -> tuple[str, ...]:
+    """Return keywords for a contact command."""
     return CONTACTS_KEYWORDS.get(command, ())

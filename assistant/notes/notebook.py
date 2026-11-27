@@ -1,3 +1,5 @@
+"""Store and search notes."""
+
 from collections import Counter, UserDict
 from datetime import datetime
 from typing import Any
@@ -8,20 +10,26 @@ from assistant.notes.note import Note
 
 
 class Notebook(UserDict[str, Note]):
+    """Store and organize notes."""
+
     def add_note(self, note: Note) -> None:
+        """Add a note to the notebook."""
         key = note.title.value.casefold()
         if key in self:
             raise NoteExistsError(note.title.value)
         self[key] = note
 
     def find_note(self, title: str) -> Note | None:
+        """Find a note by title."""
         return self.get(title.strip().casefold())
 
     def delete_note(self, title: str) -> None:
+        """Delete a note by title."""
         note = self._require_note(title)
         del self[note.title.value.casefold()]
 
     def rename_note(self, title: str, new_title: str) -> Note:
+        """Rename a note and return the updated note."""
         current = self._require_note(title)
         updated = Note(
             new_title,
@@ -45,6 +53,7 @@ class Notebook(UserDict[str, Note]):
         text: str | None = None,
         tags: tuple[str, ...] | None = None,
     ) -> Note:
+        """Update note content or tags and return the updated note."""
         current = self._require_note(title)
         updated = Note(
             current.title.value,
@@ -63,6 +72,7 @@ class Notebook(UserDict[str, Note]):
         return note
 
     def search(self, query: str) -> list[Note]:
+        """Search note titles, content, and tags."""
         query = query.strip().casefold()
         return [
             note
@@ -78,6 +88,7 @@ class Notebook(UserDict[str, Note]):
         ]
 
     def find_by_tags(self, *tags: str, match_all: bool = False) -> list[Note]:
+        """Find notes matching any or all supplied tags."""
         wanted = {NoteTag(tag).value for tag in tags}
         if not wanted:
             return []
@@ -92,10 +103,12 @@ class Notebook(UserDict[str, Note]):
         ]
 
     def all_tags(self) -> dict[str, int]:
+        """Count each tag used in the notebook."""
         tags = (tag for note in self.values() for tag in self._tags(note))
         return dict(Counter(tags))
 
     def group_by_tags(self) -> dict[str, list[Note]]:
+        """Group notes by tag, including untagged notes."""
         groups: dict[str, list[Note]] = {
             tag: [] for tag in sorted(self.all_tags())
         }
@@ -110,6 +123,7 @@ class Notebook(UserDict[str, Note]):
         return groups
 
     def sort_by_tags(self) -> list[Note]:
+        """Sort notes by tags and title."""
         return sorted(
             self.values(),
             key=lambda note: (
@@ -125,10 +139,12 @@ class Notebook(UserDict[str, Note]):
         return {tag.value for tag in note.tags}
 
     def to_dict(self) -> dict[str, dict[str, Any]]:
+        """Serialize all notes."""
         return {key: note.to_dict() for key, note in self.items()}
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Notebook":
+        """Build a notebook from serialized notes."""
         notebook = cls()
         for item in data.values():
             if not isinstance(item, dict):

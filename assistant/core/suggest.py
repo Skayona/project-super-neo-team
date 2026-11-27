@@ -1,3 +1,5 @@
+"""Match user input to available commands."""
+
 import re
 from collections.abc import Iterable, Mapping
 from difflib import get_close_matches
@@ -6,6 +8,7 @@ from assistant.core.command import Command
 
 
 def similar_cmd(key: str, commands: Iterable[str]) -> list[str]:
+    """Suggest command names similar to the input."""
     return get_close_matches(key, commands, n=3, cutoff=0.6)
 
 
@@ -13,6 +16,7 @@ def keyword_match(
     command: str,
     commands: Mapping[str, Command],
 ) -> list[str]:
+    """Match input words against command keywords."""
     normalized_command = command.lower().replace("’", "'")
     words = re.findall(r"\w+(?:'\w+)*", normalized_command)
 

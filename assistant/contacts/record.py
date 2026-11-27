@@ -1,3 +1,5 @@
+"""Represent a contact and its details."""
+
 from contextlib import suppress
 from typing import Any
 
@@ -13,7 +15,10 @@ from assistant.core.exceptions import (
 
 
 class Record:
+    """Store the details for one contact."""
+
     def __init__(self, name: str):
+        """Initialize a contact record."""
         self.name = Name(name)
         self.phones: list[Phone] = []
         self.email: Email | None = None
@@ -21,25 +26,30 @@ class Record:
         self.address: Address | None = None
 
     def add_phone(self, phone: str) -> None:
+        """Add a phone number."""
         new_phone = Phone(phone)
         if self.find_phone(new_phone.value):
             raise PhoneExistsError(new_phone.value, self.name.value)
         self.phones.append(new_phone)
 
     def add_email(self, value: str) -> None:
+        """Set the contact email."""
         self.email = Email(value)
 
     def edit_email(self, value: str) -> None:
+        """Replace the contact email."""
         if self.email is None:
             raise NotFoundError(f"У контакту {self.name.value} немає email.")
         self.email = Email(value)
 
     def delete_email(self) -> None:
+        """Remove the contact email."""
         if self.email is None:
             raise NotFoundError(f"У контакту {self.name.value} немає email.")
         self.email = None
 
     def edit_phone(self, old_phone: str, new_phone: str) -> None:
+        """Replace an existing phone number."""
         phone_to_edit = self.find_phone(old_phone)
         if phone_to_edit is None:
             raise PhoneNotFoundError(old_phone)
@@ -50,6 +60,7 @@ class Record:
         self.phones[index] = replacement
 
     def find_phone(self, number: str) -> Phone | None:
+        """Find a phone number by its normalized value."""
         target = Phone.normalize(number)
         return next(
             (phone for phone in self.phones if phone.value == target),
@@ -57,6 +68,7 @@ class Record:
         )
 
     def delete_phone(self, phone: str) -> None:
+        """Remove a phone number."""
         phone_to_delete = self.find_phone(phone)
         if phone_to_delete:
             self.phones.remove(phone_to_delete)
@@ -64,35 +76,42 @@ class Record:
             raise PhoneNotFoundError(phone)
 
     def add_birthday(self, date: str) -> None:
+        """Set the contact birthday."""
         if self.birthday is not None:
             raise BirthdayExistsError(self.name.value)
         self.birthday = Birthday(date)
 
     def delete_birthday(self) -> None:
+        """Remove the contact birthday."""
         if self.birthday is None:
             raise BirthdayNotFoundError(self.name.value)
         self.birthday = None
 
     def change_birthday(self, date: str) -> None:
+        """Replace the contact birthday."""
         if self.birthday is None:
             raise BirthdayNotFoundError(self.name.value)
 
         self.birthday = Birthday(date)
 
     def add_address(self, value: str) -> None:
+        """Set the contact address."""
         self.address = Address(value)
 
     def edit_address(self, value: str) -> None:
+        """Replace the contact address."""
         if self.address is None:
             raise NotFoundError(f"У контакту {self.name.value} немає адреси.")
         self.address = Address(value)
 
     def delete_address(self) -> None:
+        """Remove the contact address."""
         if self.address is None:
             raise NotFoundError(f"У контакту {self.name.value} немає адреси.")
         self.address = None
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the contact details."""
         return {
             "name": self.name.value,
             "phones": [p.value for p in self.phones],
@@ -102,10 +121,12 @@ class Record:
         }
 
     def show_all_phones(self) -> str:
+        """Format all phone numbers as a string."""
         return "; ".join(p.value for p in self.phones)
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "Record":
+        """Build a contact record from serialized data."""
         record = Record(data["name"])
         for phone in data.get("phones", []):
             if record.find_phone(phone) is None:
@@ -123,6 +144,7 @@ class Record:
         return record
 
     def __str__(self) -> str:
+        """Format the contact for display."""
         res = (
             f"Contact name: {self.name.value}, phones: "
             f"{'; '.join(p.value for p in self.phones)}"
