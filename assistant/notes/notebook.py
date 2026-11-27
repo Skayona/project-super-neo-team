@@ -131,5 +131,10 @@ class Notebook(UserDict[str, Note]):
     def from_dict(cls, data: dict[str, Any]) -> "Notebook":
         notebook = cls()
         for item in data.values():
-            notebook.add_note(Note.from_dict(item))
+            if not isinstance(item, dict):
+                continue
+            try:
+                notebook.add_note(Note.from_dict(item))
+            except Exception:
+                continue
         return notebook

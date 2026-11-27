@@ -1,7 +1,7 @@
 """Core package containing exceptions and base field types."""
 
 from assistant.core.base_field import BaseField
-from assistant.core.command import Command
+from assistant.core.command import Command, MutationCommand
 from assistant.core.command_result import CommandResult
 from assistant.core.exceptions import (
     AddressValidationError,
@@ -25,6 +25,7 @@ from assistant.core.exceptions import (
     ValidationError,
 )
 from assistant.core.input_error_decorator import input_error
+from assistant.core.suggest import keyword_match, similar_cmd
 
 __all__ = [
     "Command",
@@ -50,4 +51,7 @@ __all__ = [
     "UsageError",
     "input_error",
     "BaseField",
+    "keyword_match",
+    "similar_cmd",
+    "MutationCommand",
 ]

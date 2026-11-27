@@ -1,12 +1,13 @@
 from collections.abc import Iterable
 from functools import partial
-from typing import Any
 
 from rich.panel import Panel
 from rich.table import Table
 
 from assistant.contacts.address_book import AddressBook
+from assistant.contacts.command_keys import ContactCommandKeys
 from assistant.contacts.fields import Address, Birthday, Email, Phone
+from assistant.contacts.keywords import get_keywords
 from assistant.contacts.record import Record
 from assistant.core.command import Command, MutationCommand
 from assistant.core.exceptions import (
@@ -60,13 +61,13 @@ def add_contact_info(record: Record, args: list[str]) -> None:
 def add_contact(book: AddressBook, args: list[str]) -> Panel:
     name, *rest = args
     record = book.find(name)
-    message = "Contact updated."
+    message = f"Контакт «{name}» оновлено."
 
     if record is None:
         record = Record(name)
         add_contact_info(record, rest)
         book.add_record(record)
-        message = "Contact added."
+        message = f"Контакт «{name}» додано."
     else:
         add_contact_info(record, rest)
 
@@ -77,14 +78,16 @@ def add_contact(book: AddressBook, args: list[str]) -> Panel:
 def delete_contact(book: AddressBook, args: list[str]) -> Panel:
     name, *_ = args
     book.delete(name)
-    return format_success(f"Contact {name} deleted.")
+    return format_success(f"Контакт {name} видалено.")
 
 
 @input_error
 def find_contact(book: AddressBook, args: list[str]) -> Table | Panel:
     query = " ".join(args).strip()
     if not query:
-        raise UsageError("Використання: find-contact <запит...>")
+        raise UsageError(
+            f"Використання: {ContactCommandKeys.FIND_CONTACT.value} <запит...>"
+        )
 
     matches = book.search(query)
     if not matches:
@@ -92,7 +95,9 @@ def find_contact(book: AddressBook, args: list[str]) -> Table | Panel:
     return render_contacts_table(matches, "Результати пошуку")
 
 
-def show_all_contacts(book: AddressBook, *_: Any) -> Table | Panel:
+def show_all_contacts(book: AddressBook, args: list[str]) -> Table | Panel:
+    if args:
+        raise UsageError("Команда не приймає аргументів.")
     return render_contacts_table(book.values(), "Список усіх контактів")
 
 
@@ -125,6 +130,10 @@ def add_phone(book: AddressBook, args: list[str]) -> Panel:
 
 @input_error
 def show_phone(book: AddressBook, args: list[str]) -> Panel:
+    if len(args) != 1:
+        raise UsageError(
+            "Вкажіть одне ім'я контакту (у лапках, якщо з пробілом)."
+        )
     name = args[0]
     record = get_record(book, name)
     return format_card(
@@ -188,11 +197,14 @@ def upcoming_birthdays(
     book: AddressBook, args: list[str] | None = None
 ) -> Table | Panel:
     days = 7
+    integer_error_message = "Кількість днів має бути цілим числом."
     if args:
+        if len(args) != 1:
+            raise UsageError(integer_error_message)
         try:
-            days = int(args[0]) if len(args) == 1 else 0
+            days = int(args[0])
         except ValueError:
-            days = 0
+            raise UsageError(integer_error_message)
 
     weekdays = (
         "Понеділок",
@@ -234,7 +246,8 @@ def add_email(book: AddressBook, args: list[str]) -> Panel:
     if record.email is not None:
         raise AlreadyExistsError(
             f"У контакту {name} вже є email {record.email.value}. "
-            f"Щоб замінити, використайте change-email."
+            "Щоб замінити, використайте "
+            f"{ContactCommandKeys.CHANGE_EMAIL.value}."
         )
     record.add_email(email)
     return format_success(f"Email {email} додано до контакту {name}")
@@ -270,7 +283,8 @@ def add_address(book: AddressBook, args: list[str]) -> Panel:
     if record.address is not None:
         raise AlreadyExistsError(
             f"У контакту {name} вже є адреса. "
-            f"Щоб замінити, використайте change-address."
+            "Щоб замінити, використайте "
+            f"{ContactCommandKeys.CHANGE_ADDRESS.value}."
         )
     record.add_address(address)
     return format_success(f"Адресу контакту {name} додано: {address}")
@@ -313,164 +327,216 @@ def complete_name_and_phone(book: AddressBook, args: list[str]) -> list[str]:
     return []
 
 
-def build_contacts_commands(book: AddressBook) -> dict[str, Command]:
+def build_commands(book: AddressBook) -> dict[str, Command]:
     return {
-        "add-contact": MutationCommand(
+        ContactCommandKeys.ADD_CONTACT: MutationCommand(
             handler=partial(add_contact, book),
             usage=(
-                "add-contact <ім'я> [телефон] [email] [ДД.ММ.РРРР] [адреса]"
+                f"{ContactCommandKeys.ADD_CONTACT.value} <ім'я> [телефон] "
+                "[email] [ДД.ММ.РРРР] [адреса]"
             ),
             description=(
                 "Додати контакт або оновити існуючий "
-                "('-' для пропуску поля, напр.: add-contact Anna - a@m.com; "
+                "('-' для пропуску поля, напр.: "
+                f"{ContactCommandKeys.ADD_CONTACT.value} Anna - a@m.com; "
                 'імʼя з пробілом — у лапках: "Anna Petrenko")'
             ),
             category="Contacts",
-            example="add-contact Anna 0501234567 anna@mail.com 15.03.1995 "
-            "Київ",
+            example=(
+                f"{ContactCommandKeys.ADD_CONTACT.value} Anna 0501234567 "
+                "anna@mail.com 15.03.1995 Київ"
+            ),
+            keywords=get_keywords(ContactCommandKeys.ADD_CONTACT),
         ),
-        "delete-contact": MutationCommand(
+        ContactCommandKeys.DELETE_CONTACT: MutationCommand(
             handler=partial(delete_contact, book),
             arg_completer=lambda args: complete_contact_name(book, args),
-            usage="delete-contact <ім'я>",
+            usage=f"{ContactCommandKeys.DELETE_CONTACT.value} <ім'я>",
             description="Видалити контакт із книги",
             category="Contacts",
-            example="delete-contact Anna",
+            example=f"{ContactCommandKeys.DELETE_CONTACT.value} Anna",
+            keywords=get_keywords(ContactCommandKeys.DELETE_CONTACT),
         ),
-        "find-contact": Command(
+        ContactCommandKeys.FIND_CONTACT: Command(
             handler=partial(find_contact, book),
-            usage="find-contact <запит...>",
+            usage=f"{ContactCommandKeys.FIND_CONTACT.value} <запит...>",
             description=(
                 "Знайти контакти за іменем, телефоном, email, "
                 "адресою або датою народження"
             ),
             category="Contacts",
-            example="find-contact Anna",
+            example=f"{ContactCommandKeys.FIND_CONTACT.value} Anna",
+            keywords=get_keywords(ContactCommandKeys.FIND_CONTACT),
         ),
-        "show-all-contacts": Command(
+        ContactCommandKeys.SHOW_ALL_CONTACTS: Command(
             handler=partial(show_all_contacts, book),
-            usage="show-all-contacts",
+            usage=ContactCommandKeys.SHOW_ALL_CONTACTS.value,
             description="Показати всі збережені контакти",
             category="Contacts",
-            example="show-all-contacts",
+            example=ContactCommandKeys.SHOW_ALL_CONTACTS.value,
+            keywords=get_keywords(ContactCommandKeys.SHOW_ALL_CONTACTS),
         ),
-        "add-phone": MutationCommand(
+        ContactCommandKeys.ADD_PHONE: MutationCommand(
             handler=partial(add_phone, book),
             arg_completer=lambda args: complete_contact_name(book, args),
-            usage="add-phone <ім'я> <телефон>",
+            usage=f"{ContactCommandKeys.ADD_PHONE.value} <ім'я> <телефон>",
             description="Додати додатковий номер телефону до контакту",
             category="Contacts",
-            example="add-phone Anna 0507654321",
+            example=f"{ContactCommandKeys.ADD_PHONE.value} Anna 0507654321",
+            keywords=get_keywords(ContactCommandKeys.ADD_PHONE),
         ),
-        "show-phone": Command(
+        ContactCommandKeys.SHOW_PHONE: Command(
             handler=partial(show_phone, book),
             arg_completer=lambda args: complete_contact_name(book, args),
-            usage="show-phone <ім'я>",
+            usage=f"{ContactCommandKeys.SHOW_PHONE.value} <ім'я>",
             description="Показати інформацію та телефони контакту",
             category="Contacts",
-            example="show-phone Anna",
+            example=f"{ContactCommandKeys.SHOW_PHONE.value} Anna",
+            keywords=get_keywords(ContactCommandKeys.SHOW_PHONE),
         ),
-        "change-phone": MutationCommand(
+        ContactCommandKeys.CHANGE_PHONE: MutationCommand(
             handler=partial(change_phone, book),
             arg_completer=lambda args: complete_name_and_phone(book, args),
-            usage="change-phone <ім'я> <старий_телефон> <новий_телефон>",
+            usage=(
+                f"{ContactCommandKeys.CHANGE_PHONE.value} "
+                "<ім'я> <старий_телефон> <новий_телефон>"
+            ),
             description="Змінити існуючий номер телефону контакту",
             category="Contacts",
-            example="change-phone Anna 0501234567 0509998877",
+            example=(
+                f"{ContactCommandKeys.CHANGE_PHONE.value} "
+                "Anna 0501234567 0509998877"
+            ),
+            keywords=get_keywords(ContactCommandKeys.CHANGE_PHONE),
         ),
-        "delete-phone": MutationCommand(
+        ContactCommandKeys.DELETE_PHONE: MutationCommand(
             handler=partial(delete_phone, book),
             arg_completer=lambda args: complete_name_and_phone(book, args),
-            usage="delete-phone <ім'я> <телефон>",
+            usage=f"{ContactCommandKeys.DELETE_PHONE.value} <ім'я> <телефон>",
             description="Видалити номер телефону у контакту",
             category="Contacts",
-            example="delete-phone Anna 0501234567",
+            example=f"{ContactCommandKeys.DELETE_PHONE.value} Anna 0501234567",
+            keywords=get_keywords(ContactCommandKeys.DELETE_PHONE),
         ),
-        "add-birthday": MutationCommand(
+        ContactCommandKeys.ADD_BIRTHDAY: MutationCommand(
             handler=partial(add_birthday, book),
             arg_completer=lambda args: complete_contact_name(book, args),
-            usage="add-birthday <ім'я> <дн - ДД.ММ.РРРР>",
+            usage=(
+                f"{ContactCommandKeys.ADD_BIRTHDAY.value} "
+                "<ім'я> <дн - ДД.ММ.РРРР>"
+            ),
             description="Додати день народження до контакту",
             category="Contacts",
-            example="add-birthday Anna 15.03.1995",
+            example=(
+                f"{ContactCommandKeys.ADD_BIRTHDAY.value} Anna 15.03.1995"
+            ),
+            keywords=get_keywords(ContactCommandKeys.ADD_BIRTHDAY),
         ),
-        "show-birthday": Command(
+        ContactCommandKeys.SHOW_BIRTHDAY: Command(
             handler=partial(show_birthday, book),
             arg_completer=lambda args: complete_contact_name(book, args),
-            usage="show-birthday <ім'я>",
+            usage=f"{ContactCommandKeys.SHOW_BIRTHDAY.value} <ім'я>",
             description="Показати день народження контакту",
             category="Contacts",
-            example="show-birthday Anna",
+            example=f"{ContactCommandKeys.SHOW_BIRTHDAY.value} Anna",
+            keywords=get_keywords(ContactCommandKeys.SHOW_BIRTHDAY),
         ),
-        "change-birthday": MutationCommand(
+        ContactCommandKeys.CHANGE_BIRTHDAY: MutationCommand(
             handler=partial(change_birthday, book),
             arg_completer=lambda args: complete_contact_name(book, args),
-            usage="change-birthday <ім'я> <дн - ДД.ММ.РРРР>",
+            usage=(
+                f"{ContactCommandKeys.CHANGE_BIRTHDAY.value} "
+                "<ім'я> <дн - ДД.ММ.РРРР>"
+            ),
             description="Змінити день народження контакту",
             category="Contacts",
-            example="change-birthday Anna 20.04.1996",
+            example=(
+                f"{ContactCommandKeys.CHANGE_BIRTHDAY.value} Anna 20.04.1996"
+            ),
+            keywords=get_keywords(ContactCommandKeys.CHANGE_BIRTHDAY),
         ),
-        "delete-birthday": MutationCommand(
+        ContactCommandKeys.DELETE_BIRTHDAY: MutationCommand(
             handler=partial(delete_birthday, book),
             arg_completer=lambda args: complete_contact_name(book, args),
-            usage="delete-birthday <ім'я>",
+            usage=f"{ContactCommandKeys.DELETE_BIRTHDAY.value} <ім'я>",
             description="Видалити день народження у контакту",
             category="Contacts",
-            example="delete-birthday Anna",
+            example=f"{ContactCommandKeys.DELETE_BIRTHDAY.value} Anna",
+            keywords=get_keywords(ContactCommandKeys.DELETE_BIRTHDAY),
         ),
-        "upcoming-birthdays": Command(
+        ContactCommandKeys.UPCOMING_BIRTHDAYS: Command(
             handler=partial(upcoming_birthdays, book),
-            usage="upcoming-birthdays [дні=7]",
+            usage=f"{ContactCommandKeys.UPCOMING_BIRTHDAYS.value} [дні=7]",
             description="Показати дні народження в межах заданого періоду",
             category="Contacts",
-            example="upcoming-birthdays 14",
+            example=f"{ContactCommandKeys.UPCOMING_BIRTHDAYS.value} 14",
+            keywords=get_keywords(ContactCommandKeys.UPCOMING_BIRTHDAYS),
         ),
-        "add-email": MutationCommand(
+        ContactCommandKeys.ADD_EMAIL: MutationCommand(
             handler=partial(add_email, book),
-            usage="add-email <ім'я> <email>",
+            usage=f"{ContactCommandKeys.ADD_EMAIL.value} <ім'я> <email>",
             arg_completer=lambda args: complete_contact_name(book, args),
             description="Додати email до контакту",
             category="Contacts",
-            example="add-email Anna anna@mail.com",
+            example=f"{ContactCommandKeys.ADD_EMAIL.value} Anna anna@mail.com",
+            keywords=get_keywords(ContactCommandKeys.ADD_EMAIL),
         ),
-        "change-email": MutationCommand(
+        ContactCommandKeys.CHANGE_EMAIL: MutationCommand(
             handler=partial(change_email, book),
             arg_completer=lambda args: complete_contact_name(book, args),
-            usage="change-email <ім'я> <новий_email>",
+            usage=(
+                f"{ContactCommandKeys.CHANGE_EMAIL.value} <ім'я> <новий_email>"
+            ),
             description="Змінити email контакту",
             category="Contacts",
-            example="change-email Anna new@mail.com",
+            example=(
+                f"{ContactCommandKeys.CHANGE_EMAIL.value} Anna new@mail.com"
+            ),
+            keywords=get_keywords(ContactCommandKeys.CHANGE_EMAIL),
         ),
-        "delete-email": MutationCommand(
+        ContactCommandKeys.DELETE_EMAIL: MutationCommand(
             handler=partial(delete_email, book),
             arg_completer=lambda args: complete_contact_name(book, args),
-            usage="delete-email <ім'я>",
+            usage=f"{ContactCommandKeys.DELETE_EMAIL.value} <ім'я>",
             description="Видалити email у контакту",
             category="Contacts",
-            example="delete-email Anna",
+            example=f"{ContactCommandKeys.DELETE_EMAIL.value} Anna",
+            keywords=get_keywords(ContactCommandKeys.DELETE_EMAIL),
         ),
-        "add-address": MutationCommand(
+        ContactCommandKeys.ADD_ADDRESS: MutationCommand(
             handler=partial(add_address, book),
             arg_completer=lambda args: complete_contact_name(book, args),
-            usage="add-address <ім'я> <адреса...>",
+            usage=f"{ContactCommandKeys.ADD_ADDRESS.value} <ім'я> <адреса...>",
             description="Додати адресу до контакту",
             category="Contacts",
-            example="add-address Anna Київ, вул. Хрещатик 1",
+            example=(
+                f"{ContactCommandKeys.ADD_ADDRESS.value} "
+                "Anna Київ, вул. Хрещатик 1"
+            ),
+            keywords=get_keywords(ContactCommandKeys.ADD_ADDRESS),
         ),
-        "change-address": MutationCommand(
+        ContactCommandKeys.CHANGE_ADDRESS: MutationCommand(
             handler=partial(change_address, book),
             arg_completer=lambda args: complete_contact_name(book, args),
-            usage="change-address <ім'я> <нова_адреса...>",
+            usage=(
+                f"{ContactCommandKeys.CHANGE_ADDRESS.value} "
+                "<ім'я> <нова_адреса...>"
+            ),
             description="Змінити адресу контакту",
             category="Contacts",
-            example="change-address Anna Львів, пл. Ринок 5",
+            example=(
+                f"{ContactCommandKeys.CHANGE_ADDRESS.value} "
+                "Anna Львів, пл. Ринок 5"
+            ),
+            keywords=get_keywords(ContactCommandKeys.CHANGE_ADDRESS),
         ),
-        "delete-address": MutationCommand(
+        ContactCommandKeys.DELETE_ADDRESS: MutationCommand(
             handler=partial(delete_address, book),
             arg_completer=lambda args: complete_contact_name(book, args),
-            usage="delete-address <ім'я>",
+            usage=f"{ContactCommandKeys.DELETE_ADDRESS.value} <ім'я>",
             description="Видалити адресу у контакту",
             category="Contacts",
-            example="delete-address Anna",
+            example=f"{ContactCommandKeys.DELETE_ADDRESS.value} Anna",
+            keywords=get_keywords(ContactCommandKeys.DELETE_ADDRESS),
         ),
     }

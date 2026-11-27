@@ -8,13 +8,13 @@ from assistant.contacts.fields import (
     Name,
     Phone,
 )
-from assistant.contacts.handlers_registry import build_contacts_commands
+from assistant.contacts.handlers_registry import build_commands
 from assistant.contacts.record import Record
 
 __all__ = [
     "AddressBook",
     "Record",
-    "build_contacts_commands",
+    "build_commands",
     "Name",
     "Phone",
     "Email",
