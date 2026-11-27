@@ -143,7 +143,7 @@ assistant/
 
 | Учасник | Ролі |
 |---|---|
-| [Антон Заєць](https://github.com/AntonZaiets) | Scrum Master, Dev |
-| [Катерина Метельова](https://github.com/Skayona) | Team Lead, Dev |
+| [Антон](https://github.com/AntonZaiets) | Scrum Master, Dev |
+| [Катерина](https://github.com/Skayona) | Team Lead, Dev |
 | [Аріна](https://github.com/ArynaPatlakh) | Dev, QA |
-| [Аліна Мисковець](https://github.com/aniaks240-star) | Dev, QA |
+| [Ангеліна](https://github.com/aniaks240-star) | Dev, QA |
