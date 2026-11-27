@@ -1,3 +1,5 @@
+"""Format assistant output for the terminal."""
+
 from collections.abc import Sequence
 from typing import get_args
 
@@ -17,6 +19,7 @@ def format_welcome(
     note_count: int,
     frequent_commands: Sequence[tuple[str, Command]],
 ) -> Panel:
+    """Build the assistant welcome panel."""
     content = [
         Text.assemble(
             ("Контактів: ", "bold"),
@@ -58,6 +61,7 @@ def format_welcome(
 
 
 def format_info(text: str) -> Panel:
+    """Format an informational message."""
     return Panel(
         f"\n{escape(text)}\n",
         title_align="left",
@@ -68,6 +72,7 @@ def format_info(text: str) -> Panel:
 
 
 def format_success(text: str) -> Panel:
+    """Format a success message."""
     return Panel(
         f"\n{escape(text)}\n",
         title_align="left",
@@ -78,6 +83,7 @@ def format_success(text: str) -> Panel:
 
 
 def format_error(text: str) -> Panel:
+    """Format an error message."""
     return Panel(
         f"\n{escape(text)}\n",
         title_align="left",
@@ -88,6 +94,7 @@ def format_error(text: str) -> Panel:
 
 
 def format_warn(text: str) -> Panel:
+    """Format a warning message."""
     return Panel(
         f"\n{escape(text)}\n",
         title_align="left",
@@ -98,6 +105,7 @@ def format_warn(text: str) -> Panel:
 
 
 def format_card(title: str, data: dict[str, str]) -> Panel:
+    """Format key-value data as a panel."""
     lines = [
         f"[bold magenta]{escape(key)}:[/] {escape(value) or '—'}"
         for key, value in data.items()
@@ -115,6 +123,7 @@ def format_card(title: str, data: dict[str, str]) -> Panel:
 def format_table(
     title: str, headers: list[str], rows: list[list[str]]
 ) -> Table | Panel:
+    """Format rows as a table or an empty-list message."""
     if not rows:
         return format_info("Список порожній.")
 
@@ -133,6 +142,7 @@ def format_table(
 
 
 def format_command_card(commands: dict[str, Command], name: str) -> Panel:
+    """Display usage details for a command."""
     key = name.lower()
     cmd = commands.get(key)
     if cmd is None:
@@ -158,6 +168,7 @@ def format_command_card(commands: dict[str, Command], name: str) -> Panel:
 
 
 def format_help(commands: dict[str, Command]) -> Table:
+    """Build a help table for available commands."""
     table = Table(
         title="[bold magenta]Доступні команди[/]",
         box=box.ROUNDED,

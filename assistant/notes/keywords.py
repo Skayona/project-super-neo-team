@@ -1,3 +1,5 @@
+"""Map note commands to search keywords."""
+
 from assistant.notes.command_keys import NotesCommandKeys
 
 ADD_NOTE_KEYWORDS: tuple[str, ...] = (
@@ -299,4 +301,5 @@ NOTES_KEYWORDS: dict[NotesCommandKeys, tuple[str, ...]] = {
 
 
 def get_keywords(command: NotesCommandKeys) -> tuple[str, ...]:
+    """Return keywords for a note command."""
     return NOTES_KEYWORDS.get(command, ())

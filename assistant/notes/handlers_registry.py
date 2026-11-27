@@ -1,3 +1,5 @@
+"""Define handlers for note commands."""
+
 from collections.abc import Iterable
 from difflib import get_close_matches
 from functools import partial
@@ -31,6 +33,7 @@ MATCH_ALL_FLAG = "--all"
 
 
 def get_note(notebook: Notebook, title: str) -> Note:
+    """Return a note or raise when it is missing."""
     note = notebook.find_note(title)
     if note is None:
         raise NoteNotFoundError(title)
@@ -90,6 +93,7 @@ def _render_notes_table(title: str, notes: list[Note]) -> Table | Panel:
 
 @input_error
 def add_note(notebook: Notebook, args: list[str]) -> CommandResult:
+    """Create a note with optional content and tags."""
     title, content, tags = _parse_note_args(args)
 
     note = Note(
@@ -108,6 +112,7 @@ def add_note(notebook: Notebook, args: list[str]) -> CommandResult:
 
 @input_error
 def show_note(notebook: Notebook, args: list[str]) -> CommandResult:
+    """Display a note and its metadata."""
     if not args:
         raise UsageError("Вкажіть заголовок нотатки.")
 
@@ -135,6 +140,7 @@ def show_note(notebook: Notebook, args: list[str]) -> CommandResult:
 
 @input_error
 def all_notes(notebook: Notebook, args: list[str]) -> CommandResult:
+    """Display all notes."""
     if args:
         raise UsageError("Команда не приймає аргументів.")
 
@@ -161,6 +167,7 @@ def all_notes(notebook: Notebook, args: list[str]) -> CommandResult:
 
 @input_error
 def find_note(notebook: Notebook, args: list[str]) -> CommandResult:
+    """Find notes matching a query."""
     query = " ".join(args).strip()
 
     if not query:
@@ -194,6 +201,7 @@ def find_note(notebook: Notebook, args: list[str]) -> CommandResult:
 
 @input_error
 def edit_note(notebook: Notebook, args: list[str]) -> CommandResult:
+    """Replace the content of a note."""
     if len(args) < 2:
         raise UsageError("Вкажіть заголовок нотатки та новий текст.")
 
@@ -212,6 +220,7 @@ def edit_note(notebook: Notebook, args: list[str]) -> CommandResult:
 
 @input_error
 def rename_note(notebook: Notebook, args: list[str]) -> CommandResult:
+    """Rename a note."""
     if len(args) != 2:
         raise UsageError("Вкажіть поточний та новий заголовки нотатки.")
 
@@ -229,6 +238,7 @@ def rename_note(notebook: Notebook, args: list[str]) -> CommandResult:
 
 @input_error
 def delete_note(notebook: Notebook, args: list[str]) -> CommandResult:
+    """Delete a note by title."""
     if not args:
         raise UsageError("Вкажіть заголовок нотатки.")
 
@@ -267,11 +277,13 @@ def delete_note(notebook: Notebook, args: list[str]) -> CommandResult:
 
 
 def format_tags(note: Note) -> str:
+    """Format a note's tags for display."""
     return ", ".join(sorted(tag.value for tag in note.tags)) or "—"
 
 
 @input_error
 def add_tag(notebook: Notebook, args: list[str]) -> CommandResult:
+    """Add tags to a note."""
     title, *tags = args
     if not tags:
         raise UsageError("Вкажіть хоча б один тег.")
@@ -295,6 +307,7 @@ def add_tag(notebook: Notebook, args: list[str]) -> CommandResult:
 
 @input_error
 def remove_tag(notebook: Notebook, args: list[str]) -> Panel:
+    """Remove a tag from a note."""
     title, tag = args
     note = get_note(notebook, title)
     note.remove_tag(tag)
@@ -305,6 +318,7 @@ def remove_tag(notebook: Notebook, args: list[str]) -> Panel:
 
 @input_error
 def find_tag(notebook: Notebook, args: list[str]) -> Table | Panel:
+    """Find notes by one or more tags."""
     match_all = MATCH_ALL_FLAG in args
     tags = [arg for arg in args if arg != MATCH_ALL_FLAG]
     if not tags:
@@ -325,6 +339,7 @@ def find_tag(notebook: Notebook, args: list[str]) -> Table | Panel:
 
 @input_error
 def all_tags(notebook: Notebook, args: list[str]) -> Table | Panel:
+    """Display all tags and their usage counts."""
     rows = [
         [tag, str(count)] for tag, count in sorted(notebook.all_tags().items())
     ]
@@ -332,12 +347,14 @@ def all_tags(notebook: Notebook, args: list[str]) -> Table | Panel:
 
 
 def complete_note_title(notebook: Notebook, args: list[str]) -> list[str]:
+    """Suggest note titles for command input."""
     if len(args) == 0:
         return sorted(note.title.value for note in notebook.values())
     return []
 
 
 def complete_note_tag(notebook: Notebook, args: list[str]) -> list[str]:
+    """Suggest tags for a selected note."""
     if len(args) == 0:
         return complete_note_title(notebook, args)
     if len(args) == 1:
@@ -347,6 +364,7 @@ def complete_note_tag(notebook: Notebook, args: list[str]) -> list[str]:
 
 
 def complete_tags(notebook: Notebook, args: list[str]) -> list[str]:
+    """Suggest unused tags and the all-tags option."""
     used = set(args)
     options = [*sorted(notebook.all_tags()), MATCH_ALL_FLAG]
     return [option for option in options if option not in used]
@@ -365,6 +383,7 @@ def _render_notes(title: str, notes: Iterable[Note]) -> Table | Panel:
 
 
 def sort_notes(notebook: Notebook, args: list[str]) -> Table | Panel | Group:
+    """Display notes sorted or grouped by tag."""
     if args and args != ["--group"]:
         raise UsageError("Доступний параметр: --group.")
 
@@ -380,6 +399,7 @@ def sort_notes(notebook: Notebook, args: list[str]) -> Table | Panel | Group:
 
 
 def build_notes_commands(notebook: Notebook) -> dict[str, Command]:
+    """Build the note command definitions."""
     return {
         NotesCommandKeys.ADD_NOTE: MutationCommand(
             handler=partial(add_note, notebook),

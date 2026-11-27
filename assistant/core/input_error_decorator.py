@@ -1,3 +1,5 @@
+"""Convert command errors into user-facing results."""
+
 from collections.abc import Callable
 from functools import wraps
 from typing import Any
@@ -8,10 +10,12 @@ from assistant.ui.views import format_error
 
 
 def failed(message: str) -> CommandResult:
+    """Build a failed command result."""
     return CommandResult(format_error(message), changed=False)
 
 
 def input_error(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Wrap a handler with input error conversion."""
     @wraps(func)
     def inner(*args: Any, **kwargs: Any) -> Any:
         try:

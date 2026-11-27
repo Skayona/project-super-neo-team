@@ -1,3 +1,5 @@
+"""Define command models and argument completers."""
+
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal
@@ -10,6 +12,8 @@ ArgCompleter = Callable[[list[str]], Sequence[str]]
 
 @dataclass(frozen=True)
 class Command:
+    """Describe a command and its handler."""
+
     handler: Callable[[list[str]], CommandResult | Any]
     usage: str
     description: str
@@ -22,4 +26,6 @@ class Command:
 
 @dataclass(frozen=True)
 class MutationCommand(Command):
+    """Describe a command that changes stored data."""
+
     mutates: bool = True
