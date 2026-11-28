@@ -308,6 +308,9 @@ def add_tag(notebook: Notebook, args: list[str]) -> CommandResult:
 @input_error
 def remove_tag(notebook: Notebook, args: list[str]) -> Panel:
     """Remove a tag from a note."""
+    if len(args) != 2:
+        raise UsageError("Вкажіть заголовок нотатки та один тег.")
+
     title, tag = args
     note = get_note(notebook, title)
     note.remove_tag(tag)
